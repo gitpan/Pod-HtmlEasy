@@ -89,9 +89,9 @@ sub show_diff {
 
     my $html ;
     if ( !-s $html_file ) {
-      $html = $podhtml->pod2html($pod_file , $html_file , index_item => 1) ; ## To generate the HTMLs
+      $html = $podhtml->pod2html($pod_file , $html_file , index_item => 1 , no_generator => 1) ; ## To generate the HTMLs
     }
-    else { $html = $podhtml->pod2html($pod_file , index_item => 1) ;}
+    else { $html = $podhtml->pod2html($pod_file , index_item => 1 , no_generator => 1) ;}
 
     my $chk_html = cat_file($html_file) ;
     

@@ -19,7 +19,7 @@ use Pod::HtmlEasy::TiehHandler ;
 use strict qw(vars) ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.06' ;
+$VERSION = '0.07' ;
 
 ########
 # VARS #
@@ -206,7 +206,6 @@ sub new {
 
 sub pod2html {
   my $this = shift ;
-  
   my $file = shift ;
   my $save = ($_[0] !~ /^(?:file|title|body|css|index|top|only_content|no_index|no_css|index_item)$/i) ? shift : undef ;
   my ( %args ) = @_ ;
@@ -216,6 +215,9 @@ sub pod2html {
   $parser->{POD_HTMLEASY} = $this ;
   
   $parser->{INDEX_ITEM} = 1 if $args{index_item} ;
+  
+  $parser->{BASIC_ENTITIES} = 1 if $args{basic_entities} ;
+  $parser->{COMMON_ENTITIES} = 1 if $args{common_entities} ;
   
   local(*PODIN , *PODOUT) ;
   
@@ -227,10 +229,11 @@ sub pod2html {
   
   my $io ;
   if ( ref($file) eq 'GLOB' ) { $io = $file ;}
-  elsif ( $file =~ /[\r\n]/s && !-e $file ) {
+  elsif ( ($file =~ /[\r\n]/s || $file eq '' ) && !-e $file ) {
     tie(*PODIN => 'Pod::HtmlEasy::TiehHandler' , \$file) ;
     $io = \*PODIN ;
   }
+  elsif ( !-e $file ) { return ;}
   
   delete $this->{INDEX} ;
   
@@ -263,6 +266,9 @@ sub pod2html {
     print $out $html ;
     close($out) ;
   }
+  
+  $parser = undef ; ## undef due closure at errorsub() ;
+  $parser->{POD_HTMLEASY} = undef ;
   
   return $html ;
 }
@@ -385,13 +391,12 @@ $css
   }
   else { $css = '' ;}
   
-  my $gen = "Pod::HtmlEasy/$VERSION Perl/$] [$^O]" ;
+  my $gen = $args{no_generator} ? '' : qq`<meta name="GENERATOR" content="Pod::HtmlEasy/$VERSION Perl/$] [$^O]">\n` ;
 
 my $html = qq`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<meta name="GENERATOR" content="$gen">
-<title>$title</title>
+$gen<title>$title</title>
 $css
 </head>
 <body$body><a name='_top'></a>
@@ -1097,6 +1102,22 @@ If I<TRUE> tell to only generate the HTML content (between <body>...</body>).
 
 If I<TRUE> items will be added in the index.
 
+=item basic_entities
+
+If TRUE encode only basic entities:
+
+  & < >
+
+=item common_entities
+
+If TRUE encode only common entities:
+
+  & < > á é í ó ú Á É Í Ó Ú â ê î ô û Â Ê Î Ô Û ã õ Ã Õ ç Ç ©
+
+=item no_generator
+
+If TRUE the meta GENERATOR tag won't be added.
+
 =back
 
 =back
@@ -1259,6 +1280,9 @@ L<perlpod>.
 Graciliano M. P. <gm@virtuasites.com.br>
 
 I will appreciate any type of feedback (include your opinions and/or suggestions). ;-P
+
+Thanks to Ivan Tubert-Brohman <itub@cpan.org> that suggested to add the basic_entities
+and common_entities options and for tests.
 
 =head1 COPYRIGHT
 

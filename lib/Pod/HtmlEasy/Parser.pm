@@ -285,9 +285,7 @@ $VERSION = '0.01' ;
    diams    => chr(9830),
    ) : ())
   );
-
-  my @CHAR_2_ENTITY_ORDER = (qw(& < >) , sort values %ENTITIES) ;
-
+  
   {
     my %ENTITIES_BASIC = (
     amp  => '&' ,
@@ -298,7 +296,21 @@ $VERSION = '0.01' ;
     ) ;
     foreach my $Key ( keys %ENTITIES_BASIC ) { $ENTITIES{$Key} = $ENTITIES_BASIC{$Key} ;}
   }
+
+  my @CHAR_2_ENTITY_BASIC_ORDER = qw(& < >) ;
   
+  my @CHAR_2_ENTITY_COMMON_ORDER = (@CHAR_2_ENTITY_BASIC_ORDER , qw(
+  á é í ó ú
+  Á É Í Ó Ú
+  â ê î ô û
+  Â Ê Î Ô Û
+  ã õ Ã Õ
+  ç Ç
+  ©
+  )) ;
+
+  my @CHAR_2_ENTITY_ORDER = (@CHAR_2_ENTITY_COMMON_ORDER , sort values %ENTITIES) ;
+
   my %CHAR_2_ENTITY ;
   foreach my $Key ( keys %ENTITIES ) { $CHAR_2_ENTITY{ $ENTITIES{$Key} } = "&$Key;" ;}
 
@@ -602,8 +614,11 @@ sub _encode_entities {
   my $txt_ref ;
   if ( ref($_[0]) ) { $txt_ref = shift ;}
   else { my $txt = shift ; $txt_ref = \$txt ;}
+  
+  my $entity_order = $parser->{COMMON_ENTITIES} ? \@CHAR_2_ENTITY_COMMON_ORDER :
+                   ( $parser->{BASIC_ENTITIES}  ? \@CHAR_2_ENTITY_BASIC_ORDER  : \@CHAR_2_ENTITY_ORDER ) ;
 
-  foreach my $Key ( @CHAR_2_ENTITY_ORDER ) {
+  foreach my $Key ( @$entity_order ) {
     _mark_filter($parser , $txt_ref , qr/\Q$Key\E/s , $CHAR_2_ENTITY{$Key} ) ;
   }
   
@@ -709,6 +724,12 @@ sub _parselink {
   $text = $inferred if (defined $inferred && !defined $text) ;
   return ($text, $name, $section, $type);
 }
+
+###########
+# DESTROY #
+###########
+
+sub DESTROY {}
 
 #######
 # END #

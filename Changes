@@ -1,5 +1,10 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.07  2004-10-10
+      - Fixed a minor bug when the input is '' and isn't file, that make Pod::Parser to read from STDIN.
+      - Added option for basic_entities and common_entities at pod2html().
+
+
 0.06  2004-05-09
       - Fixed minor bug for argument _on_item that should be on_item.
 
