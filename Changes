@@ -1,5 +1,8 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.06  2004-05-09
+      - Fixed minor bug for argument _on_item that should be on_item.
+
 
 0.05  2004-05-09
       - Added support to =for

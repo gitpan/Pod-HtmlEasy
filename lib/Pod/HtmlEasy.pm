@@ -19,7 +19,7 @@ use Pod::HtmlEasy::TiehHandler ;
 use strict qw(vars) ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.05' ;
+$VERSION = '0.06' ;
 
 ########
 # VARS #
@@ -173,7 +173,7 @@ sub new {
   $this->{ON_TEXTBLOCK} = $args{on_textblock} || \&evt_on_textblock ;
   
   $this->{ON_OVER} = $args{on_over} || \&evt_on_over ;
-  $this->{ON_ITEM} = $args{_on_item} || \&evt_on_item ;
+  $this->{ON_ITEM} = $args{on_item} || \&evt_on_item ;
   $this->{ON_BACK} = $args{on_back} || \&evt_on_back ;
 
   $this->{ON_FOR}  = $args{on_for} || \&evt_on_for ;
