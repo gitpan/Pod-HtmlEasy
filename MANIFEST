@@ -1,0 +1,9 @@
+Changes
+MANIFEST
+Makefile.PL
+README
+test.pl
+lib/Pod/HtmlEasy.pm
+lib/Pod/HtmlEasy/Parser.pm
+lib/Pod/HtmlEasy/TiehHandler.pm
+
