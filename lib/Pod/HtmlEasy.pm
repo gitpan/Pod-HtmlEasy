@@ -19,7 +19,7 @@ use Pod::HtmlEasy::TiehHandler ;
 use strict qw(vars) ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.02' ;
+$VERSION = '0.03' ;
 
 ########
 # VARS #

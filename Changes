@@ -1,5 +1,9 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.03  2004-01-15
+      - Added EXE_FILES key to MakeFile.PL (forgot to put in 0.02 version).
+
+
 0.02  2004-01-13
       - Added script podhtmleasy.pl
       - item titles, by default, are bold now.
