@@ -1,5 +1,11 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+
+0.04  2004-02-05
+      - Fixed some simple bugs.
+      - Added item on index.
+
+
 0.03  2004-01-15
       - Added EXE_FILES key to MakeFile.PL (forgot to put in 0.02 version).
 

@@ -66,11 +66,14 @@ sub cat_file {
 
     my $html ;
     if ( !-s $html_file ) {
-      $html = $podhtml->pod2html($pod_file , $html_file) ; ## To generate the HTMLs
+      $html = $podhtml->pod2html($pod_file , $html_file , index_item => 1) ; ## To generate the HTMLs
     }
-    else { $html = $podhtml->pod2html($pod_file) ;}
+    else { $html = $podhtml->pod2html($pod_file , index_item => 1) ;}
 
     my $chk_html = cat_file($html_file) ;
+    
+    $html =~ s/[\r\n]+/\n/gs ; $html =~ s/^\s+//s ; $html =~ s/\s+$//s ;
+    $chk_html =~ s/[\r\n]+/\n/gs ; $chk_html =~ s/^\s+//s ; $chk_html =~ s/\s+$//s ;
     
     print "*** ERRO with file: $pod_file\n" if $html ne $chk_html ;
     ok($html , $chk_html) ;

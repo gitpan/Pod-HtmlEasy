@@ -24,9 +24,11 @@ $VERSION = '0.01' ;
 # VARS #
 ########
 
-  use Regexp::Common ;
-
-  my $URI_RE = $RE{URI} ;
+  #use Regexp::Common ;
+  #my $URI_RE = $RE{URI} ;
+  
+  my $URI_RE = q`(?:(?:(?:nntp)://(?:(?:(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?)/(?:(?:[a-zA-Z][-A-Za-z0-9.+_]*))(?:/(?:[0-9]+))?))|(?:(?:pop)://(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),&=~]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+))(?:;AUTH=(?:[*]|(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),&=~]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+)|(?:[+](?:APOP|(?:(?:[-a-zA-Z0-9$_.+!*'(),&=~]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+))))))?@)?(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?)|(?:(?:wais)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?/(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))(?:[?](?:(?:(?:[-a-zA-Z0-9$_.+!*'(),;:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))|/(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))/(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)))?))|(?:(?:ftp)://(?:(?:(?:(?:[a-zA-Z0-9\-_.!~*'();:&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))(?:)@)?(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z])[.]?)|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]*)))?(?:/(?:(?:(?:(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:/(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))(?:;type=(?:[AIai]))?))?)|(?:(?:tel):(?:(?:(?:[+](?:[0-9\-.()]+)(?:;isub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*)|(?:[0-9\-.()*#ABCDwp]+(?:;isub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*))))|(?:(?:prospero)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?/(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:/(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))(?:(?:;(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)=(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))|(?:(?:tv):(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z])[.]?))?)|(?:(?:telnet)://(?:(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),;?&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))(?::(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),;?&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)))?)@)?(?:(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?)(?:/)?)|(?:(?:news):(?:(?:[*]|(?:(?:[-a-zA-Z0-9$_.+!*'(),;/?:&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+@(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))|(?:[a-zA-Z][-A-Za-z0-9.+_]*))))|(?:(?:gopher)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?/(?:(?:(?:[0-9+IgT]))(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))))|(?:(?:file)://(?:(?:(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+))|localhost)?)(?:/(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:/(?:(?:[-a-zA-Z0-9$_.+!*'(),:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*)))))|(?:(?:fax):(?:(?:(?:[+](?:[0-9\-.()]+)(?:;isub=[0-9\-.()]+)?(?:;tsub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*)|(?:[0-9\-.()*#ABCDwp]+(?:;isub=[0-9\-.()]+)?(?:;tsub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*))))|(?:(?:http)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z])[.]?)|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]*)))?(?:/(?:(?:(?:(?:(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:;(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*)(?:/(?:(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:;(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))*))(?:[?](?:(?:(?:[;/?:@&=+$,a-zA-Z0-9\-_.!~*'()]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)))?))?))` ;  
+    
   my $MAIL_RE = qr/([\w-]+\@[\w-]+(?:\.[\w-\.]+\.[\w-]+|\.[\w-]+|))/s ;
   
   use vars qw(%ENTITIES) ;
@@ -326,7 +328,7 @@ sub end_pod {
 
   return if $parser->{POD_HTMLEASY_INCLUDE} ;
   
-  1 while(   ${$parser->{POD_HTMLEASY}->{OUTPUT}} =~ s/\Q$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}\E#(\d+)#/ delete $parser->{POD_HTMLEASY}{MARK_FILTER}{$1} /ges ) ; ## delete key to avoid recursion and a infinite loop.
+  _remove_mark_filter($parser , $parser->{POD_HTMLEASY}->{OUTPUT} ) ;
 
   delete $parser->{POD_HTMLEASY}{MARK_FILTER} ;
   
@@ -344,7 +346,7 @@ sub end_pod {
 ###########
 
 sub command { 
-  my ($parser, $command, $paragraph, $line_num) = @_;
+  my ($parser, $command, $paragraph, $line_num , $pod) = @_;
   
   _verbatim($parser) if $parser->{POD_HTMLEASY}->{VERBATIN_BUFFER} ne '' ;
     
@@ -354,12 +356,15 @@ sub command {
   
   $expansion =~ s/\s+$//s ;
   
-  my $a_name = $expansion ;
-  $a_name =~ s/\W/-/gs ;
-  
   _encode_entities($parser , \$expansion) ;
   _add_uri_href($parser , \$expansion) ;
+
+  _remove_mark_filter($parser , \$expansion) ;  
   
+  my $a_name = $expansion ;
+  $a_name =~ s/<.*?>//gs ;
+  $a_name =~ s/\W/-/gs ;
+    
   my $html ;
   if ( $command eq 'head1' ) {
     _add_tree_point($parser , $expansion , 1) ;
@@ -374,12 +379,17 @@ sub command {
     $html = &{$parser->{POD_HTMLEASY}->{ON_HEAD3}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
   }
   elsif ( $command eq 'over' ) {
+    if ( $parser->{INDEX_ITEM} ) { $parser->{INDEX_ITEM_LEVEL}++ ;}
     $html = &{$parser->{POD_HTMLEASY}->{ON_OVER}}($parser->{POD_HTMLEASY} , $expansion ) ;
   }
   elsif ( $command eq 'item' ) {
+    if ( $parser->{INDEX_ITEM} ) {
+      _add_tree_point($parser , $expansion , (3 + ($parser->{INDEX_ITEM_LEVEL} || 1)) ) ;
+    }
     $html = &{$parser->{POD_HTMLEASY}->{ON_ITEM}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
   }
   elsif ( $command eq 'back' ) {
+    if ( $parser->{INDEX_ITEM} ) { $parser->{INDEX_ITEM_LEVEL}-- ;}
     $html = &{$parser->{POD_HTMLEASY}->{ON_BACK}}($parser->{POD_HTMLEASY} , $expansion ) ;
   }
   elsif ( $command eq 'include' ) {
@@ -389,6 +399,7 @@ sub command {
   elsif ( defined $parser->{POD_HTMLEASY}->{"ON_\U$command\E"} ) {
     $html = &{$parser->{POD_HTMLEASY}->{"ON_\U$command\E"}}($parser->{POD_HTMLEASY} , $expansion ) ;
   }
+  elsif ( $command =~ /^(?:pod|cut)$/i ) { ; }
   else {
     $html = "<pre>=$command $expansion</pre>" ;
   }
@@ -555,11 +566,25 @@ sub _add_uri_href {
   if ( ref($_[0]) ) { $txt_ref = shift ;}
   else { my $txt = shift ; $txt_ref = \$txt ;}
   
-  _mark_filter($parser , $txt_ref , $MAIL_RE , \q`"<a href='$1'>$1</a>"`) ;
-
+  return $$txt_ref if $$txt_ref eq '' ;
+  
   _mark_filter($parser , $txt_ref , qr/(<a\s+.*?href=(?:\S+|".*?"|'.*?')[^>]*>)/si) ;
   
-  _mark_filter($parser , $txt_ref , $URI_RE , \q`"<a href='$1'>$1</a>"`) ;
+  my %uri ;
+  
+  $$txt_ref =~ s/($MAIL_RE)/ $uri{ ++$uri{x} } = "mailto:$1" ; "#\0#PODHTML_URI#$uri{x}#"/gesx ;
+  $$txt_ref =~ s/($URI_RE)/ $uri{ ++$uri{x} } = $1 ; "#\0#PODHTML_URI#$uri{x}#"/gesx ;
+
+  delete $uri{x} ;
+  foreach my $Key ( sort { $a <=> $b } keys %uri ) {
+    $uri{$Key} = &{$parser->{POD_HTMLEASY}->{ON_URI}}($parser->{POD_HTMLEASY} , $uri{$Key} ) ;
+  }
+  
+  $$txt_ref =~ s/\#\0\#PODHTML_URI\#(\d+)\#/
+    $parser->{POD_HTMLEASY}{MARK_FILTER}{x}++ ;
+    $parser->{POD_HTMLEASY}{MARK_FILTER}{  $parser->{POD_HTMLEASY}{MARK_FILTER}{x}  } = $uri{$1} ;
+    "$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}#$parser->{POD_HTMLEASY}{MARK_FILTER}{x}#"
+  /gesx if %uri ;
   
   return $$txt_ref ;
 }
@@ -595,6 +620,16 @@ sub _mark_filter {
     "$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}#$parser->{POD_HTMLEASY}{MARK_FILTER}{x}#"
   /gesx ;
   
+}
+
+#######################
+# _REMOVE_MARK_FILTER #
+#######################
+
+sub _remove_mark_filter {
+  my ( $parser , $ref ) = @_ ;
+  1 while( $$ref =~ s/\Q$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}\E#(\d+)#/ delete $parser->{POD_HTMLEASY}{MARK_FILTER}{$1} /ges ) ; ## delete key to avoid recursion and a infinite loop.
+  return 1 ;
 }
 
 ##################

@@ -19,7 +19,7 @@ use Pod::HtmlEasy::TiehHandler ;
 use strict qw(vars) ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.03' ;
+$VERSION = '0.04' ;
 
 ########
 # VARS #
@@ -136,6 +136,14 @@ table.dlsip     {
 }
 ` ;
 
+###############
+# DEFAULT_CSS #
+###############
+
+sub default_css {
+  return $CSS_DEF ;
+}
+
 #######
 # NEW #
 #######
@@ -172,6 +180,7 @@ sub new {
   $this->{ON_INDEX_NODE_END} = $args{on_index_node_end} || \&evt_on_index_node_end ;
 
   $this->{ON_INCLUDE} = $args{on_include} || \&evt_on_include ;
+  $this->{ON_URI} = $args{on_uri} || \&evt_on_uri ;
 
   $this->{ON_ERROR} = $args{on_error} || \&evt_on_error ;
   
@@ -197,12 +206,14 @@ sub pod2html {
   my $this = shift ;
   
   my $file = shift ;
-  my $save = shift if $_[0] !~ /^(?:file|title|body|css|index|only_content|no_index|no_css)$/i ;
+  my $save = ($_[0] !~ /^(?:file|title|body|css|index|top|only_content|no_index|no_css|index_item)$/i) ? shift : undef ;
   my ( %args ) = @_ ;
 
   my $parser = Pod::HtmlEasy::Parser->new() ;
   $parser->errorsub( sub { &Pod::HtmlEasy::Parser::_errors($parser , @_) ;} ) ;
   $parser->{POD_HTMLEASY} = $this ;
+  
+  $parser->{INDEX_ITEM} = 1 if $args{index_item} ;
   
   local(*PODIN , *PODOUT) ;
   
@@ -239,7 +250,7 @@ sub pod2html {
   my $html ;
   
   if ( $args{only_content} ) {
-    $html = "$args{index}<div class='pod'><div>$output<div></div>\n"
+    $html = "<a name='_top'></a>$args{top}$args{index}<div class='pod'><div>$output<div></div>\n"
   }
   else {
     $html = $this->build_html("$output\n" , %args) ;
@@ -280,10 +291,11 @@ sub walk_index {
   my ( $this , $tree , $on_open , $on_close , $output ) = @_ ;
   
   for(my $i = 0 ; $i < @$tree ; $i+=2) {
-    my $nk = @{ $$tree[$i+1] } if ref( $$tree[$i+1] ) eq 'ARRAY' ;
+    my $nk = ref( $$tree[$i+1] ) eq 'ARRAY' ? @{ $$tree[$i+1] } : undef ;
     $nk = $nk >= 1 ? 1 : undef ;
     
     my $a_name = $$tree[$i] ;
+    $a_name =~ s/<.*?>//gs ;
     $a_name =~ s/\W/-/gs ;
 
     if ( $on_open ) {
@@ -380,7 +392,8 @@ my $html = qq`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <title>$title</title>
 $css
 </head>
-<body$body><a name="_top"></a>
+<body$body><a name='_top'></a>
+$args{top}
 $args{index}
 <div class='pod'><div>
 $content
@@ -395,19 +408,19 @@ $content
 sub evt_on_head1 {
   my $this = shift ;
   my ( $txt , $a_name ) = @_ ;
-  return "<a name='$a_name'><h1>$txt</h1>\n\n" ;
+  return "<a name='$a_name'></a><h1>$txt</h1>\n\n" ;
 }
 
 sub evt_on_head2 {
   my $this = shift ;
   my ( $txt , $a_name ) = @_ ;
-  return "<a name='$a_name'><h2>$txt</h2>\n\n" ;
+  return "<a name='$a_name'></a><h2>$txt</h2>\n\n" ;
 }
 
 sub evt_on_head3 {
   my $this = shift ;
   my ( $txt , $a_name ) = @_ ;
-  return "<a name='$a_name'><h3>$txt</h3>\n\n" ;
+  return "<a name='$a_name'></a><h3>$txt</h3>\n\n" ;
 }
 
 sub evt_on_L {
@@ -474,6 +487,7 @@ sub evt_on_Z { return '' ; }
 sub evt_on_verbatin {
   my $this = shift ;
   my ( $txt ) = @_ ;
+  return '' if $txt !~ /\S/s ;
   return "<pre>$txt</pre>\n" ;
 }
 
@@ -491,8 +505,8 @@ sub evt_on_over {
 
 sub evt_on_item {
   my $this = shift ;
-  my ( $txt ) = @_ ;
-  return "<li><b>$txt</b></li>\n" ;
+  my ( $txt , $a_name ) = @_ ;
+  return "<li><a name='$a_name'></a><b>$txt</b></li>\n" ;
 }
 
 sub evt_on_back {
@@ -512,6 +526,15 @@ sub evt_on_include {
   return $file ;
 }
 
+sub evt_on_uri {
+  my $this = shift ;
+  my ( $uri ) = @_ ;
+  my $target = ($uri !~ /^(?:mailto|telnet|ssh|irc):/i) ? " target='_blank'" : undef ;
+  my $txt = $uri ;
+  $txt =~ s/^mailto://i ;
+  return "<a href='$uri'$target>$txt</a>" ;
+}
+
 sub evt_on_index_node_start {
   my $this = shift ;
   my ( $txt , $a_name , $has_childs ) = @_ ;
@@ -526,23 +549,28 @@ sub evt_on_index_node_end {
   my $this = shift ;
   my ( $txt , $a_name , $has_childs ) = @_ ;
   
-  my $ret = "</ul>" if $has_childs ;
+  my $ret = $has_childs ? "</ul>" : undef ;
   
   return $ret ;
 }
 
-#########
-# UTILS #
-#########
+##############
+# PM_VERSION #
+##############
 
 sub pm_version {
+  my $this = ref($_[0]) ? shift : undef ;
   my ( $file ) = @_ ;
+  
+  return if $file !~ /\.pm$/i ;
+  
   my ($ver,$buffer) ;
 
   open (my $fh,$file) ;
-  while( read($fh, $buffer , 1024 , length($buffer) ) ) {
+  while( read($fh, $buffer , 1024*4 , length($buffer) ) ) {
     my ($v) = ( $buffer =~ /\$VERSION\s*=\s*[^\s\d\.]*([\d\.]+)./s ) ;
     if ($v ne '') { $ver = $v ; last ;}
+    last if length($buffer) > 1024*100 ;
   }
   close ($fh) ;
   
@@ -554,17 +582,106 @@ sub pm_version {
 ##############
 
 sub pm_package {
+  my $this = ref($_[0]) ? shift : undef ;
   my ( $file ) = @_ ;
+  
+  return if $file !~ /\.pm$/i ;
+  
   my ($pack,$buffer) ;
 
   open (my $fh,$file) ;
-  while( read($fh, $buffer , 1024 , length($buffer) ) ) {
-    my ($p) = ( $buffer =~ /\Wpackage\s+\w+(?:::\w+)*\W/s ) ;
+  while( read($fh, $buffer , 1024*4 , length($buffer) ) ) {
+    my ($p) = ( $buffer =~ /(?:^|\W)package\s+(\w+(?:::\w+)*)\W/s ) ;
     if ($p ne '') { $pack = $p ; last ;}
+    last if length($buffer) > 1024*100 ;
   }
   close ($fh) ;
   
   return( $pack ) ;
+}
+
+###########
+# PM_NAME #
+###########
+
+sub pm_name {
+  my $this = ref($_[0]) ? shift : undef ;
+  my ( $file ) = @_ ;
+  
+  return if $file =~ /(?:^|[\\\/])perllocal\.pod$/i ;
+  
+  my $is_pod = ($file =~ /\.pod$/i) ? 1 : undef ;
+  
+  my ($name,$h1 , $buffer,$found_end) ;
+
+  open (my $fh,$file) ;
+  while( read($fh, $buffer , 1024*4 , length($buffer) ) ) {
+    my ($n) = ( $buffer =~ /(?:^|\r\n|\n)=head1\s+NAME[ \t]*(?:\r\n|\n)\s*([^\r\n]+)/s ) ;
+    if ($n ne '') { $name = $n ; last ;}
+    
+    ($h1) = ( $buffer =~ /(?:^|\r\n|\n)=head1[ \t]+([^\r\n]+)/s ) ;
+    
+    if ( !$is_pod ) {
+      if ( $buffer =~ /^(.*)(?:\r\n|\n)__END__(?:\r\n|\n)/s ) { $found_end = length($1) ;}
+    }
+    
+    last if (($is_pod && length($buffer) > 1024*10) || (!$is_pod && $found_end && (length($buffer)-$found_end) > 1024*10)  ) ;
+  }
+  close ($fh) ;
+  
+  $name ||= $h1 ; 
+  
+  $name =~ s/\s+$//gs ;
+  
+  return( $name ) ;
+}
+
+###########################
+# PM_PACKAGE_VERSION_NAME #
+###########################
+
+sub pm_package_version_name {
+  my $this = ref($_[0]) ? shift : undef ;
+  my ( $file ) = @_ ;
+  
+  return if $file =~ /(?:^|[\\\/])perllocal\.pod$/i ;
+  
+  my $is_pm = ($file =~ /\.pm$/i) ? 1 : undef ;
+  my $is_pod = ($file =~ /\.pod$/i) ? 1 : undef ;
+  
+  my ($pack,$ver,$name , $h1 , $buffer , $found_end , $read_n) ;
+  
+  $read_n = 3 ;
+
+  open (my $fh,$file) ;
+  while( read($fh, $buffer , 1024*(2**$read_n) , length($buffer) ) ) {
+    my ($p,$v,$n) ;
+    ($p) = ( $buffer =~ /(?:^|\W)package\s+(\w+(?:::\w+)*)\W/s ) if !$pack ;
+    if ($p ne '') { $pack = $p ;}
+    
+    ($v) = ( $buffer =~ /\$VERSION\s*=\s*[^\s\d\.]*([\d\.]+)./s ) if !$ver ;
+    if ($v ne '') { $ver = $v ;}
+
+    ($n) = ( $buffer =~ /(?:^|\r\n|\n)=head1[ \t*]NAME[ \t]*(?:\r\n|\n)\s*([^\r\n]+)/s ) if !$name ;
+    if ($n ne '') { $name = $n ;}
+    
+    ($h1) = ( $buffer =~ /(?:^|\r\n|\n)=head1[ \t]+([^\r\n]+)/s ) ;
+    
+    if ( !$is_pod ) {
+      if ( $buffer =~ /^(.*)(?:\r\n|\n)__END__(?:\r\n|\n)/s ) { $found_end = length($1) ;}
+    }
+    
+    if (( ($p && $v || !$is_pm) && $n) || ($is_pod && length($buffer) > 1024*10) || (!$is_pod && length($buffer) > 1024*900) || ($found_end && (length($buffer)-$found_end) > 1024*10) ) { last ;}
+    
+    ++$read_n ;
+  }
+  close ($fh) ;
+  
+  $name ||= $h1 ;
+  
+  $name =~ s/\s+$//gs ;
+  
+  return( $pack,$ver,$name ) ;
 }
 
 #######
@@ -608,17 +725,17 @@ Complete usage:
   my $podhtml = Pod::HtmlEasy->new(
   on_head1     => sub {
                     my ( $this , $txt , $a_name ) = @_ ;
-                    return "<a name='$a_name'><h1>$txt</h1>\n\n" ;
+                    return "<a name='$a_name'></a><h1>$txt</h1>\n\n" ;
                   } ,
 
   on_head2     => sub {
                     my ( $this , $txt , $a_name ) = @_ ;
-                    return "<a name='$a_name'><h2>$txt</h2>\n\n" ;
+                    return "<a name='$a_name'></a><h2>$txt</h2>\n\n" ;
                   } ,
 
   on_head3     => sub {
                     my ( $this , $txt , $a_name ) = @_ ;
-                    return "<a name='$a_name'><h3>$txt</h3>\n\n" ;
+                    return "<a name='$a_name'></a><h3>$txt</h3>\n\n" ;
                   } ,
 
   on_B         => sub {
@@ -699,6 +816,11 @@ Complete usage:
                     return "./$file" ;
                   }
   
+  on_uri       => sub {
+                    my ( $this , $uri ) = @_ ;
+                    return "<a href='$uri' target='_blank'>$uri</a>" ;
+                  }
+  
   on_error     => sub {
                     my ( $this , $txt ) = @_ ;
                     return "<!-- POD_ERROR: $txt -->" ;
@@ -714,7 +836,7 @@ Complete usage:
   on_index_node_end => sub {
                          my $this = shift ;
                          my ( $txt , $a_name , $has_childs ) = @_ ;
-                         my $ret = "</ul>" if $has_childs ;
+                         my $ret = $has_childs ? "</ul>" : '' ;
                          return $ret ;
                        } ,
 
@@ -752,7 +874,7 @@ The text of the command.
 
 =item $a_name
 
-The text of the command filtered to be used as I<<a name="$a_name">>.
+The text of the command filtered to be used as I<<a name="$a_name"></a>>.
 
 =back
 
@@ -848,6 +970,10 @@ When I<=include> is found.
 
 Should be used only to handle the localtion of the $file.
 
+=item on_uri ( $uri )
+
+When an URI (URL, E-MAIL, etc...) is found.
+
 =item on_error ( $txt )
 
 Called on POD syntax error occurrence.
@@ -933,6 +1059,11 @@ Examples:
     }
   ` ,
 
+
+=item top
+
+Set a TOP data. The HTML paste with I<top> will be added just before the I<index>.
+
 =item index
 
 Set the index data. If not set will generate automatically, calling the events subs I<on_index_node_start> and I<on_index_node_end>
@@ -961,6 +1092,18 @@ Return the version of a Perl Module file.
 
 Return the package name of a Perl Module file.
 
+=head2 pm_name
+
+Returns I<=head1 NAME> description.
+
+=head2 pm_package_version_name
+
+Returns all the 3 values at the same time.
+
+=head2 default_css
+
+Returns the default CSS.
+
 =head1 EXTENDING POD
 
 You can extend POD seting not standart events.
@@ -974,7 +1117,7 @@ For example, to enable the command I<"=hr">:
            }
   ) ;
 
-To enable formatters is the samething, but will accept only one letter.
+To enable formatters is the same thing, but will accept only one letter.
 
 Soo, to enable I<"G>I<<...>I<>>I<">:
 
