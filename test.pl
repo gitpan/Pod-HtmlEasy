@@ -45,6 +45,29 @@ sub cat_file {
   return $data ;
 }
 
+#############
+# SHOW_DIFF #
+#############
+
+sub show_diff {
+  my ( $from , $to ) = @_ ;
+  
+  my @lines_from = split("\n" , $from) ;
+  my @lines_to = split("\n" , $to) ;
+  
+  my ( $i , $j ) = (0,0) ;
+  
+  for (; $i <= $#lines_from ; ++$i , ++$j ) {
+    my $ln_from = $lines_from[$i] ;
+    my $ln_to = $lines_to[$j] ;
+    
+    if ( $ln_from ne $ln_to ) {
+      print "line $i> $ln_from\n" ;
+    }
+  }
+  
+}
+
 #########################
 {
 
@@ -75,8 +98,13 @@ sub cat_file {
     $html =~ s/[\r\n]+/\n/gs ; $html =~ s/^\s+//s ; $html =~ s/\s+$//s ;
     $chk_html =~ s/[\r\n]+/\n/gs ; $chk_html =~ s/^\s+//s ; $chk_html =~ s/\s+$//s ;
     
-    print "*** ERRO with file: $pod_file\n" if $html ne $chk_html ;
-    ok($html , $chk_html) ;
+    if ( $html eq $chk_html ) { ok(1) ;}
+    else {
+      ok(undef) ;
+      print "*** ERRO with file: $pod_file\n" ;
+      show_diff($html , $chk_html) ;
+    }
+
   }
 
   

@@ -17,6 +17,14 @@ asdasd
 
 qweqwe
 
+=item *
+
+bla bla
+
+=item end
+
+by
+
 =back
 
 =head2 sub title2
@@ -50,6 +58,10 @@ bbb
 cc>
 
 NZ<><3
+
+=for ignore
+
+done
 
 =head1 file
 

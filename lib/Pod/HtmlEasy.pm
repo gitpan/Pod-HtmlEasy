@@ -19,7 +19,7 @@ use Pod::HtmlEasy::TiehHandler ;
 use strict qw(vars) ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.04' ;
+$VERSION = '0.05' ;
 
 ########
 # VARS #
@@ -175,6 +175,8 @@ sub new {
   $this->{ON_OVER} = $args{on_over} || \&evt_on_over ;
   $this->{ON_ITEM} = $args{_on_item} || \&evt_on_item ;
   $this->{ON_BACK} = $args{on_back} || \&evt_on_back ;
+
+  $this->{ON_FOR}  = $args{on_for} || \&evt_on_for ;
   
   $this->{ON_INDEX_NODE_START} = $args{on_index_node_start} || \&evt_on_index_node_start ;
   $this->{ON_INDEX_NODE_END} = $args{on_index_node_end} || \&evt_on_index_node_end ;
@@ -506,6 +508,7 @@ sub evt_on_over {
 sub evt_on_item {
   my $this = shift ;
   my ( $txt , $a_name ) = @_ ;
+  return "<li>" if $txt =~ /^(?:\*|\s*<[bi]\s*>\s*\*\s*<\/[bi]\s*>)$/si ;
   return "<li><a name='$a_name'></a><b>$txt</b></li>\n" ;
 }
 
@@ -513,6 +516,8 @@ sub evt_on_back {
   my $this = shift ;
   return "</ul>\n" ;
 }
+
+sub evt_on_for { return '' ;}
 
 sub evt_on_error {
   my $this = shift ;
@@ -811,6 +816,8 @@ Complete usage:
                     return "</ul>\n" ;
                   } ,
                   
+  on_for       => sub { return '' ;}
+  
   on_include   => sub {
                     my ( $this , $file ) = @_ ;
                     return "./$file" ;
@@ -964,6 +971,12 @@ When I<=item foo> is found.
 
 When I<=back> is found.
 
+=item on_for
+
+When I<=for> is found.
+
+I<By default '=for' is ignored!>
+
 =item on_include ( $file )
 
 When I<=include> is found.
@@ -1079,6 +1092,10 @@ If I<TRUE> tell to not use css.
 =item only_content
 
 If I<TRUE> tell to only generate the HTML content (between <body>...</body>).
+
+=item index_item
+
+If I<TRUE> items will be added in the index.
 
 =back
 

@@ -392,9 +392,12 @@ sub command {
     if ( $parser->{INDEX_ITEM} ) { $parser->{INDEX_ITEM_LEVEL}-- ;}
     $html = &{$parser->{POD_HTMLEASY}->{ON_BACK}}($parser->{POD_HTMLEASY} , $expansion ) ;
   }
+  elsif ( $command eq 'for' ) {
+    $html = &{$parser->{POD_HTMLEASY}->{ON_FOR}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
+  }
   elsif ( $command eq 'include' ) {
     my $file = &{$parser->{POD_HTMLEASY}->{ON_INCLUDE}}($parser->{POD_HTMLEASY} , $expansion ) ;
-    $parser->{POD_HTMLEASY}->parse_include($file) ;
+    $parser->{POD_HTMLEASY}->parse_include($file) if -e $file && -r $file ;
   }
   elsif ( defined $parser->{POD_HTMLEASY}->{"ON_\U$command\E"} ) {
     $html = &{$parser->{POD_HTMLEASY}->{"ON_\U$command\E"}}($parser->{POD_HTMLEASY} , $expansion ) ;
