@@ -1,5 +1,12 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.02  2004-01-13
+      - Added script podhtmleasy.pl
+      - item titles, by default, are bold now.
+      - Added support for E<>, F<>
+      - Added option to extend the commands (=word) and formatters (X<>).
+
+
 0.01  2004-01-11 19:07:08
       - original version;
 

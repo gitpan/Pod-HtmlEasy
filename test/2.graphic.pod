@@ -1,0 +1,12 @@
+=head1 GRAPHIC test
+
+text foo
+
+G</img/graphic-file>
+
+text bar
+
+=head1 end
+
+By!
+

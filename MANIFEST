@@ -3,7 +3,11 @@ MANIFEST
 Makefile.PL
 README
 test.pl
+script/podhtmleasy.pl
+test/1.simple.html
+test/1.simple.pod
+test/2.graphic.html
+test/2.graphic.pod
 lib/Pod/HtmlEasy.pm
 lib/Pod/HtmlEasy/Parser.pm
 lib/Pod/HtmlEasy/TiehHandler.pm
-

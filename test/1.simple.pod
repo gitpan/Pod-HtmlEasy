@@ -1,0 +1,58 @@
+
+=head1 simple test
+
+bla bla bla bla
+
+=head2 sub title
+
+wowowo
+
+=over 10
+
+=item foo
+
+asdasd
+
+=item bar
+
+qweqwe
+
+=back
+
+=head2 sub title2
+
+mohhhhh
+
+=head1 LINKS
+
+L<Text|Foo::Bar/"sect">
+
+L<Foo|Foo::Bar>
+
+L<"Section">
+
+L<Foo::Bar>
+
+B<L<http://www.foo.com> (foo site).>
+
+http://www.foo.com
+
+e-mail: <foo@foo.com>
+
+=head1 Entities
+
+E<lt> E<gt> E<verbar> E<sol> E<65> E<eacute>
+
+=head1 more formatters
+
+S<aa
+bbb
+cc>
+
+NZ<><3
+
+=head1 file
+
+file: F<foo.txt>
+
+=cut

@@ -29,7 +29,9 @@ $VERSION = '0.01' ;
   my $URI_RE = $RE{URI} ;
   my $MAIL_RE = qr/([\w-]+\@[\w-]+(?:\.[\w-\.]+\.[\w-]+|\.[\w-]+|))/s ;
   
-  my %ENTITIES = (
+  use vars qw(%ENTITIES) ;
+  
+  %ENTITIES = (
   ntilde    => 'ñ' ,
   Acirc     => 'Â' ,
   AElig     => 'Æ' ,
@@ -307,10 +309,10 @@ sub begin_pod {
 
   return if $parser->{POD_HTMLEASY_INCLUDE} ;
 
-  $parser->{POD_HTMLEASY}{MARK_FILTER}{MARK} = "\n\0#Pod::HtmlEasy::Parser::MARK_FILTER#\0" ;
+  $parser->{POD_HTMLEASY}{MARK_FILTER}{MARK} = "\0#\0MARK_FILTER\0" ;
   
   delete $parser->{POD_HTMLEASY}->{INDEX} ;
-  $parser->{POD_HTMLEASY}->{INDEX}{tree} = {} ;
+  $parser->{POD_HTMLEASY}->{INDEX} = { tree => [] } ;
 
   return 1 ;
 }
@@ -330,26 +332,11 @@ sub end_pod {
   
   my $tree = $parser->{POD_HTMLEASY}->{INDEX}{tree} ;
   
-  $parser->{POD_HTMLEASY}->{INDEX} = $tree ;
+  delete $parser->{POD_HTMLEASY}->{INDEX} ;
   
-  _clean_tree($tree) ;
+  $parser->{POD_HTMLEASY}->{INDEX} = $tree ;
 
   return 1 ;
-}
-
-###############
-# _CLEAN_TREE #
-###############
-
-sub _clean_tree {
-  my $tree = shift ;
-  
-  foreach my $Key ( keys %$tree ) {
-    if ( $Key =~ /^\n(?:back|level)\n$/s ) {
-      delete $$tree{$Key} ; next ;
-    }
-    elsif ( ref($$tree{$Key}) eq 'HASH' ) { _clean_tree($$tree{$Key}) ;}
-  }
 }
 
 ###########
@@ -399,6 +386,9 @@ sub command {
     my $file = &{$parser->{POD_HTMLEASY}->{ON_INCLUDE}}($parser->{POD_HTMLEASY} , $expansion ) ;
     $parser->{POD_HTMLEASY}->parse_include($file) ;
   }
+  elsif ( defined $parser->{POD_HTMLEASY}->{"ON_\U$command\E"} ) {
+    $html = &{$parser->{POD_HTMLEASY}->{"ON_\U$command\E"}}($parser->{POD_HTMLEASY} , $expansion ) ;
+  }
   else {
     $html = "<pre>=$command $expansion</pre>" ;
   }
@@ -418,16 +408,21 @@ sub _add_tree_point {
     $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{tree} ;
   }
   else {
-    while ( $parser->{POD_HTMLEASY}->{INDEX}{p}{"\nlevel\n"} > ($level-1) ) {
-      last if !$parser->{POD_HTMLEASY}->{INDEX}{p}{"\nback\n"} ;
-      $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{p}{"\nback\n"} ;
+    while ( $parser->{POD_HTMLEASY}->{INDEX}{l}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } > ($level-1) ) {
+      last if ! $parser->{POD_HTMLEASY}->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } ;
+      $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } ;
     }
   }
   
-  my $back = $parser->{POD_HTMLEASY}->{INDEX}{p} ;
-  $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{p}{$name} = {} ;
-  $parser->{POD_HTMLEASY}->{INDEX}{p}{"\nback\n"} = $back ;
-  $parser->{POD_HTMLEASY}->{INDEX}{p}{"\nlevel\n"} = $level ;
+  my $array = [] ;
+  
+  $parser->{POD_HTMLEASY}->{INDEX}{l}{$array} = $level ;
+  $parser->{POD_HTMLEASY}->{INDEX}{b}{$array} = $parser->{POD_HTMLEASY}->{INDEX}{p} ;
+  
+  push( @{$parser->{POD_HTMLEASY}->{INDEX}{p}} , $name , $array ) ;
+  $parser->{POD_HTMLEASY}->{INDEX}{p} = $array ;
+
+  
 }
 
 ############
@@ -498,6 +493,12 @@ sub interior_sequence {
     _add_uri_href($parser , \$seq_argument) ;
     $ret = &{$parser->{POD_HTMLEASY}->{ON_C}}($parser->{POD_HTMLEASY} , $seq_argument ) ;
   }
+  elsif ( $seq_command eq 'E' ) {
+    $ret = &{$parser->{POD_HTMLEASY}->{ON_E}}($parser->{POD_HTMLEASY} , $seq_argument ) ;
+  }
+  elsif ( $seq_command eq 'F' ) {
+    $ret = &{$parser->{POD_HTMLEASY}->{ON_F}}($parser->{POD_HTMLEASY} , $seq_argument ) ;
+  }
   elsif ( $seq_command eq 'I' ) {
     _encode_entities($parser , \$seq_argument) ;
     _add_uri_href($parser , \$seq_argument) ;
@@ -506,6 +507,15 @@ sub interior_sequence {
   elsif ( $seq_command eq 'L' ) {
     my ($text, $page, $section, $type) = &_parselink($seq_argument) ;
     $ret = &{$parser->{POD_HTMLEASY}->{ON_L}}($parser->{POD_HTMLEASY} , $seq_argument , $text, $page, $section, $type ) ;
+  }
+  elsif ( $seq_command eq 'S' ) {
+    $ret = &{$parser->{POD_HTMLEASY}->{ON_S}}($parser->{POD_HTMLEASY} , $seq_argument ) ;
+  }
+  elsif ( $seq_command eq 'Z' ) {
+    $ret = &{$parser->{POD_HTMLEASY}->{ON_Z}}($parser->{POD_HTMLEASY} , $seq_argument ) ;
+  }
+  elsif ( defined $parser->{POD_HTMLEASY}->{"ON_\U$seq_command\E"} ) {
+    $ret = &{$parser->{POD_HTMLEASY}->{"ON_\U$seq_command\E"}}($parser->{POD_HTMLEASY} , $seq_argument ) ;
   }
   else { $ret = "$seq_command<$seq_argument>" ;}
   

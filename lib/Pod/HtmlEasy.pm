@@ -19,7 +19,7 @@ use Pod::HtmlEasy::TiehHandler ;
 use strict qw(vars) ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.01' ;
+$VERSION = '0.02' ;
 
 ########
 # VARS #
@@ -150,8 +150,12 @@ sub new {
 
   $this->{ON_B} = $args{on_B} || \&evt_on_B ;
   $this->{ON_C} = $args{on_C} || \&evt_on_C ;
+  $this->{ON_E} = $args{on_E} || \&evt_on_E ;
+  $this->{ON_F} = $args{on_F} || \&evt_on_F ;
   $this->{ON_I} = $args{on_I} || \&evt_on_I ;
   $this->{ON_L} = $args{on_L} || \&evt_on_L ;
+  $this->{ON_S} = $args{on_S} || \&evt_on_S ;
+  $this->{ON_Z} = $args{on_Z} || \&evt_on_Z ;
   
   $this->{ON_HEAD1} = $args{on_head1} || \&evt_on_head1 ;
   $this->{ON_HEAD2} = $args{on_head2} || \&evt_on_head2 ;
@@ -170,6 +174,17 @@ sub new {
   $this->{ON_INCLUDE} = $args{on_include} || \&evt_on_include ;
 
   $this->{ON_ERROR} = $args{on_error} || \&evt_on_error ;
+  
+  foreach my $Key ( keys %args ) {
+    if ( $Key =~ /^on_(\w+)$/ ) {
+      my $cmd = uc($1);
+      $this->{"ON_$cmd"} = $args{$Key} if !$this->{"ON_$cmd"} ;
+    }
+    elsif ( $Key =~ /^(?:=(\w+)|(\w)<>)$/ ) {
+      my $cmd = uc( $1 || $2 );
+      $this->{$cmd} = $args{$Key} if !$this->{$cmd} ;
+    }
+  }
   
   return $this ;
 }
@@ -230,7 +245,7 @@ sub pod2html {
     $html = $this->build_html("$output\n" , %args) ;
   }
   
-  if ( $save && $save !~ /\s/s ) {
+  if ( $save && $save !~ /[\r\n]/s ) {
     open (my $out,">$save") ;
     print $out $html ;
     close($out) ;
@@ -257,33 +272,29 @@ sub parse_include {
   return 1 ;
 }
 
-#############
-# WALK_TREE #
-#############
+##############
+# WALK_INDEX #
+##############
 
-sub walk_tree {
-  my ( $this , $tree , $on_open , $on_close , $on_value , $output ) = @_ ;
+sub walk_index {
+  my ( $this , $tree , $on_open , $on_close , $output ) = @_ ;
   
-  foreach my $Key ( keys %$tree ) {
-    my $nk = keys %{ $$tree{$Key} } if ref($$tree{$Key}) eq 'HASH' ;
+  for(my $i = 0 ; $i < @$tree ; $i+=2) {
+    my $nk = @{ $$tree[$i+1] } if ref( $$tree[$i+1] ) eq 'ARRAY' ;
     $nk = $nk >= 1 ? 1 : undef ;
     
-    my $a_name = $Key ;
+    my $a_name = $$tree[$i] ;
     $a_name =~ s/\W/-/gs ;
 
     if ( $on_open ) {
-      my $ret = &$on_open($this , $Key , $a_name , $nk) ;
+      my $ret = &$on_open($this , $$tree[$i] , $a_name , $nk) ;
       $$output .= $ret if $output ;
     }
     
-    if ( ref($$tree{$Key}) eq 'HASH' ) { walk_tree( $this , $$tree{$Key} , $on_open , $on_close , $on_value , $output ) ;}
-    elsif ($on_value) {
-      my $ret = &$on_value($this , $Key , $a_name , $$tree{$Key}) ;
-      $$output .= $ret if $output ;
-    }
-
+    if ( $nk ) { walk_index( $this , $$tree[$i+1] , $on_open , $on_close , $output ) ;}
+    
     if ( $on_close ) {
-      my $ret = &$on_close($this , $Key , $a_name , $nk) ;
+      my $ret = &$on_close($this , $$tree[$i] , $a_name , $nk) ;
       $$output .= $ret if $output ;
     }
   }
@@ -297,7 +308,7 @@ sub build_index {
   my $this = shift ;
   
   my $index ;
-  $this->walk_tree( $this->{INDEX} , $this->{ON_INDEX_NODE_START} , $this->{ON_INDEX_NODE_END} , undef , \$index ) ;
+  $this->walk_index( $this->{INDEX} , $this->{ON_INDEX_NODE_START} , $this->{ON_INDEX_NODE_END} , \$index ) ;
   
   $index = qq`<div class="toc">
 <ul>
@@ -426,8 +437,39 @@ sub evt_on_I {
 sub evt_on_C {
   my $this = shift ;
   my ( $txt ) = @_ ;
-  return "<pre>$txt</pre>" ;
+  return "<font face='Courier New'>$txt</font>" ;
 }
+
+sub evt_on_E {
+  my $this = shift ;
+  my ( $txt ) = @_ ;
+  
+  return '&lt;' if $txt =~ /^lt$/i ;
+  return '&gt;' if $txt =~ /^gt$/i ;
+  return '|' if $txt =~ /^verbar$/i ;
+  return '/' if $txt =~ /^sol$/i ;
+  
+  return "&#$txt;" if $txt =~ /^\d+$/ ;
+  
+  return "&$txt;" if defined $Pod::HtmlEasy::Parser::ENTITIES{$txt} ;
+  
+  return $txt ;
+}
+
+sub evt_on_F {
+  my $this = shift ;
+  my ( $txt ) = @_ ;
+  return "<b><i>$txt</i></b>" ;
+}
+
+sub evt_on_S {
+  my $this = shift ;
+  my ( $txt ) = @_ ;
+  $txt =~ s/\n/ /gs ;
+  return $txt ;
+}
+
+sub evt_on_Z { return '' ; }
 
 sub evt_on_verbatin {
   my $this = shift ;
@@ -450,7 +492,7 @@ sub evt_on_over {
 sub evt_on_item {
   my $this = shift ;
   my ( $txt ) = @_ ;
-  return "<li>$txt</li>\n" ;
+  return "<li><b>$txt</b></li>\n" ;
 }
 
 sub evt_on_back {
@@ -536,7 +578,7 @@ __END__
 
 =head1 NAME
 
-Pod::HtmlEasy - Generate HTML from POD easy, without extra modules and on the flight.
+Pod::HtmlEasy - Generate easy and personalizable HTML from POD, without extra modules and on "the flight".
 
 =head1 DESCRIPTION
 
@@ -579,6 +621,31 @@ Complete usage:
                     return "<a name='$a_name'><h3>$txt</h3>\n\n" ;
                   } ,
 
+  on_B         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<b>$txt</b>" ;
+                  } ,
+
+  on_C         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<font face='Courier New'>$txt</font>" ;
+                  } ,
+  
+  on_E         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return '<' if $txt =~ /^lt$/i ;
+                    return '>' if $txt =~ /^gt$/i ;
+                    return '|' if $txt =~ /^verbar$/i ;
+                    return '/' if $txt =~ /^sol$/i ;
+                    return chr($txt) if $txt =~ /^\d+$/ ;
+                    return $txt ;
+                  }
+
+  on_I         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<i>$txt</i>" ;
+                  } ,
+
   on_L         => sub {
                     my ( $this , $L , $text, $page , $section, $type ) = @_ ;
                     if   ( $type eq 'pod' ) {
@@ -588,22 +655,20 @@ Complete usage:
                     elsif( $type eq 'man' ) { return "<i>$text</i>" ;}
                     elsif( $type eq 'url' ) { return "<a href='$page' target='_blank'>$text</a>" ;}
                   } ,
-
-  on_B         => sub {
+                  
+  on_F         => sub {
                     my ( $this , $txt ) = @_ ;
-                    return "<b>$txt</b>" ;
-                  } ,
+                    return "<b><i>$txt</i></b>" ;
+                  }
 
-  on_I         => sub {
+  on_S         => sub {
                     my ( $this , $txt ) = @_ ;
-                    return "<i>$txt</i>" ;
-                  } ,
+                    $txt =~ s/\n/ /gs ;
+                    return $txt ;
+                  }
 
-  on_C         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<pre>$txt</pre>" ;
-                  } ,
-
+  on_Z         => sub { return '' ; }
+  
   on_verbatin  => sub {
                     my ( $this , $txt ) = @_ ;
                     return "<pre>$txt</pre>\n" ;
@@ -699,9 +764,25 @@ When I<=head2> is found. See I<on_head1>.
 
 When I<=head2> is found. See I<on_head1>.
 
+=item on_B ( $txt )
+
+When I<B>I<<>I<...>I<>> is found. I<(bold text).>
+
+=item on_C ( $txt )
+
+When I<C>I<<>I<...>I<>> is found. I<(code text).>
+
+=item on_E ( $txt )
+
+When I<E>I<<>I<...>I<>> is found. I<(a character escape).>
+
+=item on_I ( $txt )
+
+When I<I>I<<>I<...>I<>> is found. I<(italic text).>
+
 =item on_L ( $L , $text, $page , $section, $type )
 
-When I<L>I<<>I<...>I<>> is found.
+When I<L>I<<>I<...>I<>> is found. I<(Link).>
 
 =over 10
 
@@ -728,17 +809,18 @@ The type of the link: pod, man, url.
 =back
 
 
-=item on_B ( $txt )
+=item on_F ( $txt )
 
-When I<B>I<<>I<...>I<>> is found.
+When I<I>I<<>I<...>I<>> is found. I<(used for filenames).>
 
-=item on_I ( $txt )
+=item on_S ( $txt )
 
-When I<I>I<<>I<...>I<>> is found.
+When I<I>I<<>I<...>I<>> is found. I<(text contains non-breaking spaces).>
 
-=item on_C ( $txt )
+=item on_Z ( $txt )
 
-When I<C>I<<>I<...>I<>> is found.
+When I<I>I<<>I<...>I<>> is found. I<(a null (zero-effect) formatting code).>
+
 
 =item on_verbatin ( $txt )
 
@@ -761,6 +843,8 @@ When I<=item foo> is found.
 When I<=back> is found.
 
 =item on_include ( $file )
+
+When I<=include> is found.
 
 Should be used only to handle the localtion of the $file.
 
@@ -877,7 +961,35 @@ Return the version of a Perl Module file.
 
 Return the package name of a Perl Module file.
 
+=head1 EXTENDING POD
+
+You can extend POD seting not standart events.
+
+For example, to enable the command I<"=hr">:
+
+  my $podhtml = Pod::HtmlEasy->new(
+  on_hr => sub {
+            my ( $this , $txt ) = @_ ;
+            return "<hr>" ;
+           }
+  ) ;
+
+To enable formatters is the samething, but will accept only one letter.
+
+Soo, to enable I<"G>I<<...>I<>>I<">:
+
+  my $podhtml = Pod::HtmlEasy->new(
+  on_G => sub {
+            my ( $this , $txt ) = @_ ;
+            return "<img src='$txt' border=0>" ;
+          }
+  ) ;
+
 =head1 DEFAULT CSS
+
+This is the default CSS added to the HTML.
+
+I<** If you will set your own CSS use this as base.>
 
   BODY {
     background: white;
