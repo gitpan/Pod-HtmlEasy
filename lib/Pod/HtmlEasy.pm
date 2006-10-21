@@ -2,8 +2,9 @@
 ## Name:        HtmlEasy.pm
 ## Purpose:     Pod::HtmlEasy
 ## Author:      Graciliano M. P. 
-## Modified by:
+## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
+## Updated:	2006-09-25
 ## RCS-ID:      
 ## Copyright:   (c) 2004 Graciliano M. P. 
 ## Licence:     This program is free software; you can redistribute it and/or
@@ -16,10 +17,11 @@ use 5.006 ;
 use Pod::HtmlEasy::Parser ;
 use Pod::HtmlEasy::TiehHandler ;
 
-use strict qw(vars) ;
+use strict ;
+use warnings ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.07' ;
+$VERSION = '0.08_01' ;
 
 ########
 # VARS #
@@ -163,13 +165,16 @@ sub new {
   $this->{ON_I} = $args{on_I} || \&evt_on_I ;
   $this->{ON_L} = $args{on_L} || \&evt_on_L ;
   $this->{ON_S} = $args{on_S} || \&evt_on_S ;
+  $this->{ON_X} = $args{on_X} || \&evt_on_X ; # [20078]
   $this->{ON_Z} = $args{on_Z} || \&evt_on_Z ;
   
   $this->{ON_HEAD1} = $args{on_head1} || \&evt_on_head1 ;
   $this->{ON_HEAD2} = $args{on_head2} || \&evt_on_head2 ;
   $this->{ON_HEAD3} = $args{on_head3} || \&evt_on_head3 ;
+  $this->{ON_HEAD4} = $args{on_head4} || \&evt_on_head4 ;
   
-  $this->{ON_VERBATIN} = $args{on_verbatin} || \&evt_on_verbatin ;
+  $this->{ON_VERBATIM} = $args{on_verbatim} || \&evt_on_verbatim ;
+  $this->{ON_VERBATIM} = $args{on_verbatin} if defined $args{on_verbatin} ;
   $this->{ON_TEXTBLOCK} = $args{on_textblock} || \&evt_on_textblock ;
   
   $this->{ON_OVER} = $args{on_over} || \&evt_on_over ;
@@ -177,6 +182,8 @@ sub new {
   $this->{ON_BACK} = $args{on_back} || \&evt_on_back ;
 
   $this->{ON_FOR}  = $args{on_for} || \&evt_on_for ;
+  $this->{ON_BEGIN} = $args{on_begin} || \&evt_on_begin ;
+  $this->{ON_END}   = $args{on_end}   || \&evt_on_end ;
   
   $this->{ON_INDEX_NODE_START} = $args{on_index_node_start} || \&evt_on_index_node_start ;
   $this->{ON_INDEX_NODE_END} = $args{on_index_node_end} || \&evt_on_index_node_end ;
@@ -212,6 +219,8 @@ sub pod2html {
 
   my $parser = Pod::HtmlEasy::Parser->new() ;
   $parser->errorsub( sub { &Pod::HtmlEasy::Parser::_errors($parser , @_) ;} ) ;
+  # Complains about multiple blank lines in the input
+  #$parser->parseopts(-warnings => 1);
   $parser->{POD_HTMLEASY} = $this ;
   
   $parser->{INDEX_ITEM} = 1 if $args{index_item} ;
@@ -220,8 +229,9 @@ sub pod2html {
   $parser->{COMMON_ENTITIES} = 1 if $args{common_entities} ;
   
   local(*PODIN , *PODOUT) ;
+  my $podin_tied;
   
-  my $output ;
+  my $output = ''; # [6062]
   tie(*PODOUT => 'Pod::HtmlEasy::TiehHandler' , \$output) ;
   
   $this->{OUTPUT} = \$output ;
@@ -232,6 +242,7 @@ sub pod2html {
   elsif ( ($file =~ /[\r\n]/s || $file eq '' ) && !-e $file ) {
     tie(*PODIN => 'Pod::HtmlEasy::TiehHandler' , \$file) ;
     $io = \*PODIN ;
+    $podin_tied = 1; # [6062]
   }
   elsif ( !-e $file ) { return ;}
   
@@ -245,8 +256,10 @@ sub pod2html {
   
   close(PODOUT) ;
   untie (*PODOUT) ;
-  close(PODIN) ;
-  untie (*PODIN) ;
+  if ( defined $podin_tied ) { # [6062]
+      close(PODIN) ;
+      untie (*PODIN) ;
+  }
   
   $args{file} = $file if $file ;
   
@@ -308,14 +321,14 @@ sub walk_index {
 
     if ( $on_open ) {
       my $ret = &$on_open($this , $$tree[$i] , $a_name , $nk) ;
-      $$output .= $ret if $output ;
+      $$output .= $ret if $output  and defined $ret; # [6062]
     }
     
     if ( $nk ) { walk_index( $this , $$tree[$i+1] , $on_open , $on_close , $output ) ;}
     
     if ( $on_close ) {
       my $ret = &$on_close($this , $$tree[$i] , $a_name , $nk) ;
-      $$output .= $ret if $output ;
+      $$output .= $ret if $output and defined $ret ; # [6062]
     }
   }
 }
@@ -327,7 +340,7 @@ sub walk_index {
 sub build_index {
   my $this = shift ;
   
-  my $index ;
+  my $index = ''; # [6062]
   $this->walk_index( $this->{INDEX} , $this->{ON_INDEX_NODE_START} , $this->{ON_INDEX_NODE_END} , \$index ) ;
   
   $index = qq`<div class="toc">
@@ -381,7 +394,7 @@ sub build_html {
     $css = $buffer ;
   }
   
-  if ( $css !~ /[\r\n]/s && -e $css ) {
+  if ( $css !~ /[\r\n]/s ) {
     $css = qq`<link rel="stylesheet" href="$css" type="text/css">` ;
   }
   elsif ( $css =~ /\S/s ) { $css = qq`<style type="text/css">
@@ -393,6 +406,7 @@ $css
   
   my $gen = $args{no_generator} ? '' : qq`<meta name="GENERATOR" content="Pod::HtmlEasy/$VERSION Perl/$] [$^O]">\n` ;
 
+$args{top} = '' unless exists $args{top}; # [6062]
 my $html = qq`<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
@@ -404,7 +418,7 @@ $args{top}
 $args{index}
 <div class='pod'><div>
 $content
-<div></div></body></html>
+</div></body></html>
 ` ;
 }
 
@@ -430,12 +444,33 @@ sub evt_on_head3 {
   return "<a name='$a_name'></a><h3>$txt</h3>\n\n" ;
 }
 
+sub evt_on_head4 {
+  my $this = shift ;
+  my ( $txt , $a_name ) = @_ ;
+  return "<a name='$a_name'></a><h4>$txt</h4>\n\n" ;
+}
+
+sub evt_on_begin {
+  my $this = shift ;
+  my ( $txt , $a_name ) = @_ ;
+  $this->{IN_BEGIN} = 1;
+  return '';
+}
+
+sub evt_on_end {
+  my $this = shift ;
+  my ( $txt , $a_name ) = @_ ;
+  delete $this->{IN_BEGIN};
+  return '';
+}
+
 sub evt_on_L {
   my $this = shift ;
   my ( $L , $text, $page , $section, $type ) = @_ ;
   
   if   ( $type eq 'pod' ) {
-    $section = "#$section" if $section ne '' ;
+    $section = defined $section ? "#$section" : ''; # [6062]
+    $page = '' unless defined $page; # [6062]
     return "<i><a href='http://search.cpan.org/perldoc?$page$section'>$text</a></i>" ;
   }
   elsif( $type eq 'man' ) { return "<i>$text</i>" ;}
@@ -489,18 +524,27 @@ sub evt_on_S {
   return $txt ;
 }
 
+sub evt_on_X { return '' ; } # [20078]
+
 sub evt_on_Z { return '' ; }
 
-sub evt_on_verbatin {
+sub evt_on_verbatim {
   my $this = shift ;
+  return if exists $this->{IN_BEGIN};
   my ( $txt ) = @_ ;
-  return '' if $txt !~ /\S/s ;
+
+  # Multiple empty lines are parsed as verbatim text by Pod::Parser
+  # And will show up as empty <pre> blocks, which is mucho messy
+  $txt =~ s{(^[\r\n])*(^[\r\n])\z}{}mg;
+  return '' unless length $txt;
+
   return "<pre>$txt</pre>\n" ;
 }
 
 sub evt_on_textblock {
   my $this = shift ;
   my ( $txt ) = @_ ;
+  return if exists $this->{IN_BEGIN};
   return "<p>$txt</p>\n" ;
 }
 
@@ -539,7 +583,7 @@ sub evt_on_include {
 sub evt_on_uri {
   my $this = shift ;
   my ( $uri ) = @_ ;
-  my $target = ($uri !~ /^(?:mailto|telnet|ssh|irc):/i) ? " target='_blank'" : undef ;
+  my $target = ($uri !~ /^(?:mailto|telnet|ssh|irc):/i) ? " target='_blank'" : '' ; # [6062]
   my $txt = $uri ;
   $txt =~ s/^mailto://i ;
   return "<a href='$uri'$target>$txt</a>" ;
@@ -700,18 +744,18 @@ sub pm_package_version_name {
 
 1;
 
-
 __END__
 
 =head1 NAME
 
-Pod::HtmlEasy - Generate easy and personalizable HTML from POD, without extra modules and on "the flight".
+Pod::HtmlEasy - Generate easy and personalized HTML from PODs,
+without extra modules and on "the flight".
 
 =head1 DESCRIPTION
 
-The purpose of this module is to generate HTML data from POD in a easy and personalizable mode.
+The purpose of this module is to generate HTML data from POD in a easy and personalized mode.
 
-By default the HTML generated is simillar to CPAN style for modules documentations.
+By default the HTML generated is similar to the CPAN site style for module documentation.
 
 =head1 USAGE
 
@@ -720,7 +764,7 @@ Simple usage:
   my $podhtml = Pod::HtmlEasy->new() ;
 
   my $html = $podhtml->pod2html( 'test.pod' ) ;
-  
+
   print "$html\n" ;
 
 Complete usage:
@@ -729,10 +773,88 @@ Complete usage:
 
   ## Create the object and set my own events subs:
   ## ** Note that here are all the events, and examples of how to implement **
-  ## ** them, and actually this are the default events, soo you don't need  **
+  ## ** them, and actually this are the default events, so you don't need   **
   ## ** to set everything.                                                  **
 
-  my $podhtml = Pod::HtmlEasy->new(
+  my $podhtml = Pod::HtmlEasy->new (
+
+  on_B         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<b>$txt</b>" ;
+                  } ,
+
+  on_C         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<font face='Courier New'>$txt</font>" ;
+                  } ,
+
+  on_E         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return '<' if $txt =~ /^lt$/i ;
+                    return '>' if $txt =~ /^gt$/i ;
+                    return '|' if $txt =~ /^verbar$/i ;
+                    return '/' if $txt =~ /^sol$/i ;
+                    return chr($txt) if $txt =~ /^\d+$/ ;
+                    return $txt ;
+                  } ,
+
+  on_F         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<b><i>$txt</i></b>" ;
+                  } ,
+
+  on_I         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<i>$txt</i>" ;
+                  } ,
+
+  on_L         => sub {
+                    my ( $this , $L , $text, $page , $section, $type ) = @_ ;
+                    if   ( $type eq 'pod' ) {
+		      $section = defined $section ? "#$section" : ''; 
+		      $page = '' unless defined $page; 
+                      return "<i><a href='http://search.cpan.org/perldoc?$page$section'>$text</a></i>" ;
+                    }
+                    elsif( $type eq 'man' ) { return "<i>$text</i>" ;}
+                    elsif( $type eq 'url' ) { return "<a href='$page' target='_blank'>$text</a>" ;}
+                  } ,
+
+  on_S         => sub {
+                    my ( $this , $txt ) = @_ ;
+                    $txt =~ s/\n/ /gs ;
+                    return $txt ;
+                  } ,
+
+  on_X         => sub { return '' ; } ,
+
+  on_Z         => sub { return '' ; } ,
+
+  on_back      => sub {
+		    my $this = shift ;
+		    return "</ul>\n" ;
+  		  } ,
+
+  on_begin     => sub {
+		    my $this = shift ;
+		    my ( $txt , $a_name ) = @_ ;
+		    $this->{IN_BEGIN} = 1;
+		    return '';
+  		  } ,
+
+  on_error     => sub {
+                    my ( $this , $txt ) = @_ ;
+                    return "<!-- POD_ERROR: $txt -->" ;
+                  } ,
+
+  on_end       => sub { 
+		    my $this = shift ;
+		    my ( $txt , $a_name ) = @_ ;
+		    delete $this->{IN_BEGIN};
+		    return '';
+                  } ,
+
+  on_for       => sub { return '' ;} ,
+
   on_head1     => sub {
                     my ( $this , $txt , $a_name ) = @_ ;
                     return "<a name='$a_name'></a><h1>$txt</h1>\n\n" ;
@@ -748,67 +870,14 @@ Complete usage:
                     return "<a name='$a_name'></a><h3>$txt</h3>\n\n" ;
                   } ,
 
-  on_B         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<b>$txt</b>" ;
+  on_head4     => sub {
+                    my ( $this , $txt , $a_name ) = @_ ;
+                    return "<a name='$a_name'></a><h4>$txt</h4>\n\n" ;
                   } ,
 
-  on_C         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<font face='Courier New'>$txt</font>" ;
-                  } ,
-  
-  on_E         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return '<' if $txt =~ /^lt$/i ;
-                    return '>' if $txt =~ /^gt$/i ;
-                    return '|' if $txt =~ /^verbar$/i ;
-                    return '/' if $txt =~ /^sol$/i ;
-                    return chr($txt) if $txt =~ /^\d+$/ ;
-                    return $txt ;
-                  }
-
-  on_I         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<i>$txt</i>" ;
-                  } ,
-
-  on_L         => sub {
-                    my ( $this , $L , $text, $page , $section, $type ) = @_ ;
-                    if   ( $type eq 'pod' ) {
-                      $section = "#$section" if $section ne '' ;
-                      return "<i><a href='http://search.cpan.org/perldoc?$page$section'>$text</a></i>" ;
-                    }
-                    elsif( $type eq 'man' ) { return "<i>$text</i>" ;}
-                    elsif( $type eq 'url' ) { return "<a href='$page' target='_blank'>$text</a>" ;}
-                  } ,
-                  
-  on_F         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<b><i>$txt</i></b>" ;
-                  }
-
-  on_S         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    $txt =~ s/\n/ /gs ;
-                    return $txt ;
-                  }
-
-  on_Z         => sub { return '' ; }
-  
-  on_verbatin  => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<pre>$txt</pre>\n" ;
-                  } ,
-
-  on_textblock => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<p>$txt</p>\n" ;
-                  } ,
-
-  on_over      => sub {
-                    my ( $this , $level ) = @_ ;
-                    return "<ul>\n" ;
+  on_include   => sub {
+                    my ( $this , $file ) = @_ ;
+                    return "./$file" ;
                   } ,
 
   on_item      => sub {
@@ -816,51 +885,52 @@ Complete usage:
                     return "<li>$txt</li>\n" ;
                   } ,
 
-  on_back      => sub {
-                    my $this = shift ;
-                    return "</ul>\n" ;
+  on_index_node_start => sub {
+		    my ( $this , $txt , $a_name , $has_childs ) = @_ ;
+		    my $ret = "<li><a href='#$a_name'>$txt</a>\n" ;
+		    $ret .= "\n<ul>\n" if $has_childs ;
+		    return $ret ;
+		  } ,
+
+  on_index_node_end => sub {
+		    my $this = shift ;
+		    my ( $txt , $a_name , $has_childs ) = @_ ;
+		    my $ret = $has_childs ? "</ul>" : '' ;
+		    return $ret ;
+		  } ,
+
+  on_over      => sub {
+                    my ( $this , $level ) = @_ ;
+                    return "<ul>\n" ;
                   } ,
-                  
-  on_for       => sub { return '' ;}
-  
-  on_include   => sub {
-                    my ( $this , $file ) = @_ ;
-                    return "./$file" ;
-                  }
-  
+
+  on_textblock => sub {
+                    my ( $this , $txt ) = @_ ;
+		    return if exists $this->{IN_BEGIN};
+                    return "<p>$txt</p>\n" ;
+                  } ,
+
   on_uri       => sub {
                     my ( $this , $uri ) = @_ ;
                     return "<a href='$uri' target='_blank'>$uri</a>" ;
-                  }
-  
-  on_error     => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<!-- POD_ERROR: $txt -->" ;
                   } ,
 
-  on_index_node_start => sub {
-                           my ( $this , $txt , $a_name , $has_childs ) = @_ ;
-                           my $ret = "<li><a href='#$a_name'>$txt</a>\n" ;
-                           $ret .= "\n<ul>\n" if $has_childs ;
-                           return $ret ;
-                         } ,
-
-  on_index_node_end => sub {
-                         my $this = shift ;
-                         my ( $txt , $a_name , $has_childs ) = @_ ;
-                         my $ret = $has_childs ? "</ul>" : '' ;
-                         return $ret ;
-                       } ,
-
+  on_verbatim  => sub {
+                    my ( $this , $txt ) = @_ ;
+		    $txt =~ s{(^[\r\n])*(^[\r\n])\z}{}mg;
+		    return '' unless length $txt;
+                    return "<pre>$txt</pre>\n" ;
+                  } ,
   ) ;
-  
+
   ## Convert to HTML:
 
-  my $html = $podhtml->pod2html('test.pod' , 'test.html' ,
-  title => 'POD::Test' ,
-  body => { bgcolor => '#CCCCCC' } ,
-  css => 'test.css' ,
-  ) ;
+  my $html = $podhtml->pod2html('test.pod' ,
+  				'test.html' ,
+			        title => 'POD::Test' ,
+			        body  => { bgcolor => '#CCCCCC' } ,
+			        css   => 'test.css' ,
+			       ) ;
 
 =head1 METHODS
 
@@ -868,35 +938,11 @@ Complete usage:
 
 By default the object has it own subs to handler the events.
 
-But if you want to personalize/overwrite them you can set this keys in the initialization:
+But if you want to personalize/overwrite them you can set the keys in the initialization:
 
-I<(For examples of how to implement the event subs see L<"USAGE"> above).>
-
-=over 10
-
-=item on_head1 ( $txt , $a_name )
-
-When I<=head1> is found.
+I<(For examples of how to implement the event subs see L<USAGE> above).>
 
 =over 10
-
-=item $txt
-
-The text of the command.
-
-=item $a_name
-
-The text of the command filtered to be used as I<<a name="$a_name"></a>>.
-
-=back
-
-=item on_head2 ( $txt , $a_name )
-
-When I<=head2> is found. See I<on_head1>.
-
-=item on_head3 ( $txt , $a_name )
-
-When I<=head2> is found. See I<on_head1>.
 
 =item on_B ( $txt )
 
@@ -942,39 +988,63 @@ The type of the link: pod, man, url.
 
 =back
 
-
 =item on_F ( $txt )
 
-When I<I>I<<>I<...>I<>> is found. I<(used for filenames).>
+When I<F>I<<>I<...>I<>> is found. I<(used for filenames).>
 
 =item on_S ( $txt )
 
-When I<I>I<<>I<...>I<>> is found. I<(text contains non-breaking spaces).>
+When I<S>I<<>I<...>I<>> is found. I<(text contains non-breaking spaces).>
+
+=item on_X ( $txt )
+
+When I<X>I<<>I<...>I<>> is found. I<(a null (zero-effect) formatting code).>
 
 =item on_Z ( $txt )
 
-When I<I>I<<>I<...>I<>> is found. I<(a null (zero-effect) formatting code).>
-
-
-=item on_verbatin ( $txt )
-
-When VERBATIN data is found.
-
-=item on_textblock ( $txt )
-
-When normal text blocks are found.
-
-=item on_over ( $level )
-
-When I<=over X> is found.
-
-=item on_item ( $txt )
-
-When I<=item foo> is found.
+When I<Z>I<<>I<...>I<>> is found. I<(a null (zero-effect) formatting code).>
 
 =item on_back 
 
 When I<=back> is found.
+
+=item on_begin
+
+When I<=begin> is found.
+
+By default everything from '=begin' to '=end' is ignored.
+
+=item on_error ( $txt )
+
+Called on POD syntax error occurrence.
+
+=item on_head1 ( $txt , $a_name )
+
+When I<=head1> is found.
+
+=over 10
+
+=item $txt
+
+The text of the command.
+
+=item $a_name
+
+The text of the command filtered to be used as I<<a name="$a_name"></a>>.
+
+=back
+
+=item on_head2 ( $txt , $a_name )
+
+When I<=head2> is found. See I<on_head1>.
+
+=item on_head3 ( $txt , $a_name )
+
+When I<=head3> is found. See I<on_head1>.
+
+=item on_head4 ( $txt , $a_name )
+
+When I<=head4> is found. See I<on_head1>.
 
 =item on_for
 
@@ -982,19 +1052,21 @@ When I<=for> is found.
 
 I<By default '=for' is ignored!>
 
+=item on_item ( $txt )
+
+When I<=item foo> is found.
+
+=item on_end
+
+When I<=end> is found.
+
+See '=begin' above.
+
 =item on_include ( $file )
 
 When I<=include> is found.
 
 Should be used only to handle the localtion of the $file.
-
-=item on_uri ( $uri )
-
-When an URI (URL, E-MAIL, etc...) is found.
-
-=item on_error ( $txt )
-
-Called on POD syntax error occurrence.
 
 =item on_index_node_start ( $txt , $a_name , $has_childs )
 
@@ -1007,6 +1079,25 @@ I<$has_childs> can be used to know if the node has childs (sub-nodes).
 Called to build the INDEX. This is called when a node ends.
 
 I<$has_childs> can be used to know if the node has childs (sub-nodes).
+
+=item on_over ( $level )
+
+When I<=over X> is found.
+
+=item on_textblock ( $txt )
+
+When normal text blocks are found.
+
+=item on_uri ( $uri )
+
+When an URI (URL, E-MAIL, etc...) is found.
+
+=item on_verbatim ( $txt )
+
+When VERBATIM data is found, trailing empty lines are deleted.
+
+Note: This interface was previously called "on_verbatin".
+That interface has been retained for backwards compatibility.
 
 =back
 
@@ -1024,7 +1115,7 @@ The POD file (file path) , data (SCALAR) or FILEHANDLER (GLOB opened).
 
 The output HTML file path.
 
-I<** Note that the method also returns the HTML data generated, soo you also can use it wihtout generate files.>
+I<** Note that the method also returns the HTML data generated, so you also can use it wihtout generate files.>
 
 =item %OPTIONS I<(optional)>
 
@@ -1043,11 +1134,11 @@ The body values.
 Examples:
 
   body => q`alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066"` ,
-  
+
   ## Or:
-  
+
   body => { bgcolor => "#CCCCCC" , link => "#0000FF" } , ## This will overwrite only this 2 values,
-                                                         ## the other default values are kept.
+
 
 ** I<Default: alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066">
 
@@ -1058,9 +1149,9 @@ Can be a css file path (HREF) or the css data.
 Examples:
 
   css => 'test.css' ,
-  
+
   ## Or:
-  
+
   css => q`
     BODY {
       background: white;
@@ -1076,7 +1167,6 @@ Examples:
       color: inherit;
     }
   ` ,
-
 
 =item top
 
@@ -1144,7 +1234,7 @@ Returns the default CSS.
 
 =head1 EXTENDING POD
 
-You can extend POD seting not standart events.
+You can extend POD defining non-standard events.
 
 For example, to enable the command I<"=hr">:
 
@@ -1155,9 +1245,9 @@ For example, to enable the command I<"=hr">:
            }
   ) ;
 
-To enable formatters is the same thing, but will accept only one letter.
+To define a new formatting code, do the same thing, but the code must be a single letter.
 
-Soo, to enable I<"G>I<<...>I<>>I<">:
+So, to enable I<"G>I<<...>I<>>I<">:
 
   my $podhtml = Pod::HtmlEasy->new(
   on_G => sub {
@@ -1269,11 +1359,18 @@ I<** If you will set your own CSS use this as base.>
     list-style-type: none;
   }
 
+=head1 DIAGNOSTICS
+
+HtmlEasy does not produce any messages I<other> than those that result from
+the C<use warnings> specified for each module. The maintainer would appreciate
+hearing about any such.
+
+HtmlEasy uses Pod::Parser, which may produce error messages concerning malformed
+HTML.
+
 =head1 SEE ALSO
 
-L<Pod::Parser>, L<Pod::Master>, L<Pod::Master::Html>.
-
-L<perlpod>.
+L<Pod::Parser> L<perlpod>.
 
 =head1 AUTHOR
 
@@ -1283,6 +1380,10 @@ I will appreciate any type of feedback (include your opinions and/or suggestions
 
 Thanks to Ivan Tubert-Brohman <itub@cpan.org> that suggested to add the basic_entities
 and common_entities options and for tests.
+
+=head1 MAINTENANCE
+
+Updates for version 0.8_01 by Geoffrey Leach <gleach@cpan.org>
 
 =head1 COPYRIGHT
 

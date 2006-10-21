@@ -1,17 +1,32 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.08_01 2006-09-25
+      - Changes made by GLEACH
+      - Minor cleanup in test.pl
+      - Replaced test/1.simple.html; S<> formatting was incorrect.
+      - Updated test/2.graphic.pod; source of test file, made it a jpg
+      - Added test/graphic-file.jpg
+      - Added test/3.bugs.pod
+      - podhtmleasy.pl: added shebang and fixed warnings. [6062]
+      - HtmlEasy.pm fixed warnings [6062]
+      - HtmlEasy/Parser.pm fixed warnings [6062]
+      - Added support for X<...> [20078]
+      - Added support for =head4, =begin, =end
+
+
 0.07  2004-10-10
-      - Fixed a minor bug when the input is '' and isn't file, that make Pod::Parser to read from STDIN.
+      - Fixed a minor bug when the input is '' and isn't file,
+            that make Pod::Parser to read from STDIN.
       - Added option for basic_entities and common_entities at pod2html().
 
 
 0.06  2004-05-09
-      - Fixed minor bug for argument _on_item that should be on_item.
+      - Fixed minor bug for argument _on_item that should be on_item. [6223]
 
 
 0.05  2004-05-09
-      - Added support to =for
-      - Added support to =item *
+      - Added support to =for [6064]
+      - Added support to =item * [6065]
 
 
 0.04  2004-02-05
@@ -26,7 +41,7 @@ Revision history for Perl extension Pod::HtmlEasy.
 0.02  2004-01-13
       - Added script podhtmleasy.pl
       - item titles, by default, are bold now.
-      - Added support for E<>, F<>
+      - Added support for E<>, F<> [6065]
       - Added option to extend the commands (=word) and formatters (X<>).
 
 

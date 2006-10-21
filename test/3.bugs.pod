@@ -1,0 +1,29 @@
+=head1 NAME
+
+Apache2::Filter 
+
+
+
+This is the NAME content, with extra blank lines
+
+
+
+
+=head2 Apache2::Filter
+
+The following used to confuse due to multiple MARK_FILTER instances
+with the same ID.
+
+Remember that if the connection is
+C<L<$c-E<gt>keepalive|docs::2.0::api::Apache2::Connection/C_keepalive_>>
+) and the connection filter is removed, it won't be added until the
+connection is closed. Which may happen after many HTTP requests. You
+may want to keep the filter in place and pass the data through
+unmodified, by returning C<Apache2::Const::DECLINED>. If you need to reset the
+whole or parts of the filter context between requests, use the
+L<technique based on C<$c-E<gt>keepalives>
+counting|docs::2.0::user::handler::filters>.
+
+=head1 Trailing Verbatim
+
+  This used to be ignored.

@@ -8,6 +8,9 @@ test/1.simple.html
 test/1.simple.pod
 test/2.graphic.html
 test/2.graphic.pod
+test/3.bugs.html  
+test/3.bugs.pod
+test/graphic-file.jpg
 lib/Pod/HtmlEasy.pm
 lib/Pod/HtmlEasy/Parser.pm
 lib/Pod/HtmlEasy/TiehHandler.pm

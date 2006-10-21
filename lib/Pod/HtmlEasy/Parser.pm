@@ -2,8 +2,9 @@
 ## Name:        Parser.pm
 ## Purpose:     Pod::HtmlEasy::Parser
 ## Author:      Graciliano M. P.
-## Modified by:
+## Modified by: Geoffrey Leach
 ## Created:     11/01/2004
+## Updated:	2006-09-25
 ## RCS-ID:      
 ## Copyright:   (c) 2004 Graciliano M. P.
 ## Licence:     This program is free software; you can redistribute it and/or
@@ -12,12 +13,13 @@
 
 package Pod::HtmlEasy::Parser ;
 
-use strict qw(vars);
+use strict ;
+use warnings ;
 
 use Pod::Parser ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.01' ;
+$VERSION = '0.02' ;
 @ISA = qw(Pod::Parser) ;
 
 ########
@@ -29,7 +31,7 @@ $VERSION = '0.01' ;
   
   my $URI_RE = q`(?:(?:(?:nntp)://(?:(?:(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?)/(?:(?:[a-zA-Z][-A-Za-z0-9.+_]*))(?:/(?:[0-9]+))?))|(?:(?:pop)://(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),&=~]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+))(?:;AUTH=(?:[*]|(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),&=~]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+)|(?:[+](?:APOP|(?:(?:[-a-zA-Z0-9$_.+!*'(),&=~]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+))))))?@)?(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?)|(?:(?:wais)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?/(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))(?:[?](?:(?:(?:[-a-zA-Z0-9$_.+!*'(),;:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))|/(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))/(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)))?))|(?:(?:ftp)://(?:(?:(?:(?:[a-zA-Z0-9\-_.!~*'();:&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))(?:)@)?(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z])[.]?)|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]*)))?(?:/(?:(?:(?:(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:/(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))(?:;type=(?:[AIai]))?))?)|(?:(?:tel):(?:(?:(?:[+](?:[0-9\-.()]+)(?:;isub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*)|(?:[0-9\-.()*#ABCDwp]+(?:;isub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*))))|(?:(?:prospero)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?/(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:/(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))(?:(?:;(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)=(?:(?:[-a-zA-Z0-9$_.+!*'(),?:@&]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))|(?:(?:tv):(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z])[.]?))?)|(?:(?:telnet)://(?:(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),;?&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))(?::(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),;?&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)))?)@)?(?:(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?)(?:/)?)|(?:(?:news):(?:(?:[*]|(?:(?:[-a-zA-Z0-9$_.+!*'(),;/?:&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))+@(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))|(?:[a-zA-Z][-A-Za-z0-9.+_]*))))|(?:(?:gopher)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]+)))?/(?:(?:(?:[0-9+IgT]))(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))))|(?:(?:file)://(?:(?:(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z]))|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+))|localhost)?)(?:/(?:(?:(?:(?:[-a-zA-Z0-9$_.+!*'(),:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:/(?:(?:[-a-zA-Z0-9$_.+!*'(),:@&=]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*)))))|(?:(?:fax):(?:(?:(?:[+](?:[0-9\-.()]+)(?:;isub=[0-9\-.()]+)?(?:;tsub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*)|(?:[0-9\-.()*#ABCDwp]+(?:;isub=[0-9\-.()]+)?(?:;tsub=[0-9\-.()]+)?(?:;postd=[0-9\-.()*#ABCDwp]+)?(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))(?:(?:;(?:phone-context)=(?:(?:(?:[+][0-9\-.()]+)|(?:[0-9\-.()*#ABCDwp]+))|(?:(?:[!'E-OQ-VX-Z_e-oq-vx-z~]|(?:%(?:2[124-7CFcf]|3[AC-Fac-f]|4[05-9A-Fa-f]|5[1-689A-Fa-f]|6[05-9A-Fa-f]|7[1-689A-Ea-e])))(?:[!'()*\-.0-9A-Z_a-z~]+|(?:%(?:2[1-9A-Fa-f]|3[AC-Fac-f]|[4-6][0-9A-Fa-f]|7[0-9A-Ea-e])))*)))|(?:;(?:tsp)=(?: |(?:(?:(?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?)(?:[.](?:[A-Za-z](?:(?:(?:[-A-Za-z0-9]+)){0,61}[A-Za-z0-9])?))*))))|(?:;(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:=(?:(?:(?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*)(?:[?](?:(?:[!'*\-.0-9A-Z_a-z~]+|%(?:2[13-7ABDEabde]|3[0-9]|4[1-9A-Fa-f]|5[AEFaef]|6[0-9A-Fa-f]|7[0-9ACEace]))*))?)|(?:%22(?:(?:%5C(?:[a-zA-Z0-9\-_.!~*'()]|(?:%[a-fA-F0-9][a-fA-F0-9])))|[a-zA-Z0-9\-_.!~*'()]+|(?:%(?:[01][a-fA-F0-9])|2[013-9A-Fa-f]|[3-9A-Fa-f][a-fA-F0-9]))*%22)))?))*))))|(?:(?:http)://(?:(?:(?:(?:(?:(?:[a-zA-Z0-9][-a-zA-Z0-9]*)?[a-zA-Z0-9])[.])*(?:[a-zA-Z][-a-zA-Z0-9]*[a-zA-Z0-9]|[a-zA-Z])[.]?)|(?:[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+)))(?::(?:(?:[0-9]*)))?(?:/(?:(?:(?:(?:(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:;(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*)(?:/(?:(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)(?:;(?:(?:[a-zA-Z0-9\-_.!~*'():@&=+$,]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*))*))*))(?:[?](?:(?:(?:[;/?:@&=+$,a-zA-Z0-9\-_.!~*'()]+|(?:%[a-fA-F0-9][a-fA-F0-9]))*)))?))?))` ;  
     
-  my $MAIL_RE = qr/([\w-]+\@[\w-]+(?:\.[\w-\.]+\.[\w-]+|\.[\w-]+|))/s ;
+  my $MAIL_RE = qr/([\w-]+\@[\w\-]+(?:\.[\w\-\.]+\.[\w\-]+|\.[\w\-]+|))/s ; # [6062]
   
   use vars qw(%ENTITIES) ;
   
@@ -340,6 +342,7 @@ sub end_pod {
 
   return if $parser->{POD_HTMLEASY_INCLUDE} ;
   
+  _verbatim($parser) if defined $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} ;
   _remove_mark_filter($parser , $parser->{POD_HTMLEASY}->{OUTPUT} ) ;
 
   delete $parser->{POD_HTMLEASY}{MARK_FILTER} ;
@@ -360,7 +363,7 @@ sub end_pod {
 sub command { 
   my ($parser, $command, $paragraph, $line_num , $pod) = @_;
   
-  _verbatim($parser) if $parser->{POD_HTMLEASY}->{VERBATIN_BUFFER} ne '' ;
+  _verbatim($parser) if defined $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} ; # [6062]
     
   my $output = $parser->output_handle() ;
     
@@ -390,6 +393,18 @@ sub command {
     _add_tree_point($parser , $expansion , 3) ;
     $html = &{$parser->{POD_HTMLEASY}->{ON_HEAD3}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
   }
+  elsif ( $command eq 'head4' ) {
+    _add_tree_point($parser , $expansion , 4) ;
+    $html = &{$parser->{POD_HTMLEASY}->{ON_HEAD4}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
+  }
+  elsif ( $command eq 'begin' ) {
+    _add_tree_point($parser , $expansion , 4) ;
+    $html = &{$parser->{POD_HTMLEASY}->{ON_BEGIN}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
+  }
+  elsif ( $command eq 'end' ) {
+    $html = &{$parser->{POD_HTMLEASY}->{ON_END}}($parser->{POD_HTMLEASY} , $expansion , $a_name ) ;
+  }
+
   elsif ( $command eq 'over' ) {
     if ( $parser->{INDEX_ITEM} ) { $parser->{INDEX_ITEM_LEVEL}++ ;}
     $html = &{$parser->{POD_HTMLEASY}->{ON_OVER}}($parser->{POD_HTMLEASY} , $expansion ) ;
@@ -419,7 +434,7 @@ sub command {
     $html = "<pre>=$command $expansion</pre>" ;
   }
   
-  print $output $html if $html ne '' ;
+  print $output $html if defined $html ; # [6062]
 }
 
 ###################
@@ -434,9 +449,11 @@ sub _add_tree_point {
     $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{tree} ;
   }
   else {
-    while ( $parser->{POD_HTMLEASY}->{INDEX}{l}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } > ($level-1) ) {
-      last if ! $parser->{POD_HTMLEASY}->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } ;
-      $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } ;
+    if ( exists $parser->{POD_HTMLEASY}->{INDEX}{p} ) {
+      while ( $parser->{POD_HTMLEASY}->{INDEX}{l}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } > ($level-1) ) {
+        last if ! $parser->{POD_HTMLEASY}->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } ;
+        $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} } ;
+      }
     }
   }
   
@@ -460,7 +477,7 @@ sub verbatim {
   
   my $expansion = $parser->interpolate($paragraph, $line_num) ;
   
-  $parser->{POD_HTMLEASY}->{VERBATIN_BUFFER} .= $expansion ;
+  $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} .= $expansion ;
 }
 
 sub _verbatim {
@@ -468,14 +485,14 @@ sub _verbatim {
   
   my $output = $parser->output_handle() ;
   
-  my $expansion = $parser->{POD_HTMLEASY}->{VERBATIN_BUFFER} ;
-  $parser->{POD_HTMLEASY}->{VERBATIN_BUFFER} = '' ;
+  my $expansion = $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} ;
+  $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} = '' ;
   
   _encode_entities($parser , \$expansion) ;
   _add_uri_href($parser , \$expansion) ;
   
-  my $html = &{$parser->{POD_HTMLEASY}->{ON_VERBATIN}}($parser->{POD_HTMLEASY} , $expansion ) ;
-  print $output $html if $html ne '' ;
+  my $html = &{$parser->{POD_HTMLEASY}->{ON_VERBATIM}}($parser->{POD_HTMLEASY} , $expansion ) ;
+  print $output $html if $html ne '' ; # [6062]
 }
 
 #############
@@ -485,7 +502,7 @@ sub _verbatim {
 sub textblock { 
   my ($parser, $paragraph, $line_num) = @_ ;
   
-  _verbatim($parser) if $parser->{POD_HTMLEASY}->{VERBATIN_BUFFER} ne '' ;
+  _verbatim($parser) if defined $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} ; # [6062]
   
   my $output = $parser->output_handle() ;
   my $expansion = $parser->interpolate($paragraph, $line_num) ;
@@ -561,11 +578,12 @@ sub _errors {
   
   my $output = $parser->output_handle() ;
   
+  print "$error\n";
   $error =~ s/^\s*\**\s*errors?:?\s*//si ;
   $error =~ s/\s+$//s ;
   
   my $html = &{$parser->{POD_HTMLEASY}->{ON_ERROR}}($parser->{POD_HTMLEASY} , $error ) ;
-  print $output $html if $html ne '' ;
+  print $output $html, "\n" if $html ne '' ;
 
   return 1 ;
 }
@@ -646,9 +664,29 @@ sub _mark_filter {
 
 sub _remove_mark_filter {
   my ( $parser , $ref ) = @_ ;
-  1 while( $$ref =~ s/\Q$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}\E#(\d+)#/ delete $parser->{POD_HTMLEASY}{MARK_FILTER}{$1} /ges ) ; ## delete key to avoid recursion and a infinite loop.
+  my $tag;
+  my $match;
+  do {
+     # [6062]
+     # $match is the first MARK in $$ref. We must allow for the possibility that:
+     #  o There are multiple instances of this digit sequence.
+     #    The substitution will replace all of these.
+     #  o There are other digit sequences as well.
+     #    The substitution will miss these, but we'll get another iteration, which
+     #    will get them.
+     ($match) = $$ref =~ /\Q$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}\E#(\d+)#/;
+     if (defined $match) {
+	 ## delete key to avoid recursion and a infinite loop.
+	 $tag = delete $parser->{POD_HTMLEASY}{MARK_FILTER}{$match};
+     }
+     1
+  }
+  while( defined $match && $$ref =~ s/\Q$parser->{POD_HTMLEASY}{MARK_FILTER}{MARK}\E#($match)#/$tag/gs ) ;
+
   return 1 ;
 }
+
+
 
 ##################
 # _PARSE_SECTION #

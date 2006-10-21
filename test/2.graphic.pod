@@ -2,11 +2,11 @@
 
 text foo
 
-G</img/graphic-file>
+G<./graphic-file.jpg>
 
 text bar
 
 =head1 end
 
-By!
+Bye!
 

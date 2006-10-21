@@ -8,7 +8,7 @@ BEGIN { plan tests => 1 } ;
 use Pod::HtmlEasy ;
 
 use strict ;
-use warnings qw'all' ;
+use warnings ;
 
 ###########
 # CAT_DIR #
@@ -50,6 +50,8 @@ sub cat_file {
 #############
 
 sub show_diff {
+  ## $from is the test result
+  ## $to is the "gold" file, which defines correct behavior
   my ( $from , $to ) = @_ ;
   
   my @lines_from = split("\n" , $from) ;
@@ -58,8 +60,9 @@ sub show_diff {
   my ( $i , $j ) = (0,0) ;
   
   for (; $i <= $#lines_from ; ++$i , ++$j ) {
-    my $ln_from = $lines_from[$i] ;
-    my $ln_to = $lines_to[$j] ;
+    my ($ln_from, $ln_to) = (' ', ' ');;
+    $ln_from = $lines_from[$i] if defined $lines_from[$i];
+    $ln_to   = $lines_to[$j]   if defined $lines_to[$j];
     
     if ( $ln_from ne $ln_to ) {
       print "line $i> $ln_from\n" ;
@@ -71,10 +74,11 @@ sub show_diff {
 #########################
 {
 
+  # This defines the definition of a non-standard formatting code
   my $podhtml = Pod::HtmlEasy->new(
   on_G => sub {
             my ( $this , $txt ) = @_ ;
-            $txt .= ".gif" if $txt !~ /\.(?:jpg|gif|png)$/i ;
+            $txt .= ".jpg" if $txt !~ /\.(?:jpg|gif|png)$/i ;
             return "<img src='$txt' border=0>" ;
           }
   ) ;
@@ -89,7 +93,8 @@ sub show_diff {
 
     my $html ;
     if ( !-s $html_file ) {
-      $html = $podhtml->pod2html($pod_file , $html_file , index_item => 1 , no_generator => 1) ; ## To generate the HTMLs
+      ## To generate the HTMLs
+      $html = $podhtml->pod2html($pod_file , $html_file , index_item => 1 , no_generator => 1) ; 
     }
     else { $html = $podhtml->pod2html($pod_file , index_item => 1 , no_generator => 1) ;}
 
@@ -101,7 +106,7 @@ sub show_diff {
     if ( $html eq $chk_html ) { ok(1) ;}
     else {
       ok(undef) ;
-      print "*** ERRO with file: $pod_file\n" ;
+      print "*** ERROR testing file: $pod_file\n" ;
       show_diff($html , $chk_html) ;
     }
 
@@ -111,8 +116,4 @@ sub show_diff {
 }
 #########################
 
-print "\nThe End! By!\n" ;
-
-1 ;
-
-
+print "\nThe End! Bye!\n" ;

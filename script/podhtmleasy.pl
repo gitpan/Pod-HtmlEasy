@@ -1,7 +1,11 @@
+#! /usr/bin/perl
+eval 'exec /usr/bin/perl -S $0 ${1+"$@"}'
+    if 0;    # not running under some shell
 
 use Pod::HtmlEasy ;
 
-  use strict ;
+use strict ;
+use warnings ;
   
 if ( $ARGV[0] =~ /^-+h/i || !@ARGV ) {
 
@@ -27,7 +31,7 @@ exit;
   my $podhtml = Pod::HtmlEasy->new() ;
   
   my $pod_file = shift ;
-  my $html_file = @ARGV[0] =~ /htm/i ? shift : "$pod_file.html" ;
+  my $html_file = defined $ARGV[0] ? shift : "${pod_file}.html" ;
 
   $podhtml->pod2html( $pod_file , $html_file , @ARGV ) ;
 

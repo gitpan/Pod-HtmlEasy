@@ -12,7 +12,8 @@
 
 package Pod::HtmlEasy::TiehHandler ;
 
-use strict qw(vars) ;
+use strict ;
+use warnings;
 
 use vars qw($VERSION @ISA) ;
 $VERSION = '0.01' ;
