@@ -4,7 +4,7 @@
 ## Author:      Graciliano M. P. 
 ## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
-## Updated:	2006-09-25
+## Updated:	2006-11-12
 ## RCS-ID:      
 ## Copyright:   (c) 2004 Graciliano M. P. 
 ## Licence:     This program is free software; you can redistribute it and/or
@@ -21,7 +21,7 @@ use strict ;
 use warnings ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.08_01' ;
+$VERSION = '0.08_02' ;
 
 ########
 # VARS #
@@ -268,7 +268,7 @@ sub pod2html {
   my $html ;
   
   if ( $args{only_content} ) {
-    $html = "<a name='_top'></a>$args{top}$args{index}<div class='pod'><div>$output<div></div>\n"
+    $html = "<a name='_top'></a>$args{top}$args{index}<div class='pod'><div>$output</div></div>\n"; # [21646]
   }
   else {
     $html = $this->build_html("$output\n" , %args) ;

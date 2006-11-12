@@ -1,5 +1,8 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.08_02 2006-11-12
+       - Fix [21646]
+
 0.08_01 2006-09-25
       - Changes made by GLEACH
       - Minor cleanup in test.pl
