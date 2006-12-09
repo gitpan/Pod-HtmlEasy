@@ -21,7 +21,7 @@ use strict ;
 use warnings ;
 
 use vars qw($VERSION @ISA) ;
-$VERSION = '0.08_02' ;
+$VERSION = '0.0803' ;
 
 ########
 # VARS #

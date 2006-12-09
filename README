@@ -14,6 +14,10 @@ By default the HTML generated is simillar to CPAN style for modules documentatio
 
 See POD for more...
 
+An example of the use of this module can be found in the script directory, 
+as podhtmleasy.pl.  A more elaborate example may be found in the CPAN author
+directory for GLEACH, poe2indexed_html-xx.pl
+
 ################
 # INSTALLATION #
 ################
