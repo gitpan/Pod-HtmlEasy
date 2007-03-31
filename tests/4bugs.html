@@ -1,0 +1,177 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Apache2::Filter & Extra Stuff</title>
+<style type="text/css">
+ <!--
+BODY {
+  background: white;
+  color: black;
+  font-family: arial,sans-serif;
+  margin: 0;
+  padding: 1ex;
+}
+TABLE {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border-width: 0;
+  color: inherit;
+}
+IMG { border: 0; }
+FORM { margin: 0; }
+input { margin: 2px; }
+A.fred {
+  text-decoration: none;
+}
+A:link, A:visited {
+  background: transparent;
+  color: #006699;
+}
+TD {
+  margin: 0;
+  padding: 0;
+}
+DIV {
+  border-width: 0;
+}
+DT {
+  margin-top: 1em;
+}
+TH {
+  background: #bbbbbb;
+  color: inherit;
+  padding: 0.4ex 1ex;
+  text-align: left;
+}
+TH A:link, TH A:visited {
+  background: transparent;
+  color: black;
+}
+A.m:link, A.m:visited {
+  background: #006699;
+  color: white;
+  font: bold 10pt Arial,Helvetica,sans-serif;
+  text-decoration: none;
+}
+A.o:link, A.o:visited {
+  background: #006699;
+  color: #ccffcc;
+  font: bold 10pt Arial,Helvetica,sans-serif;
+  text-decoration: none;
+}
+A.o:hover {
+  background: transparent;
+  color: #ff6600;
+  text-decoration: underline;
+}
+A.m:hover {
+  background: transparent;
+  color: #ff6600;
+  text-decoration: underline;
+}
+table.dlsip     {
+  background: #dddddd;
+  border: 0.4ex solid #dddddd;
+}
+.pod PRE     {
+  background: #eeeeee;
+  border: 1px solid #888888;
+  color: black;
+  padding-top: 1em;
+  white-space: pre;
+}
+.pod H1      {
+  background: transparent;
+  color: #006699;
+  font-size: large;
+}
+.pod H2      {
+  background: transparent;
+  color: #006699;
+  font-size: medium;
+}
+.pod IMG     {
+  vertical-align: top;
+}
+.pod .toc A  {
+  text-decoration: none;
+}
+.pod .toc LI {
+  line-height: 1.2em;
+  list-style-type: none;
+}
+--></style>
+</head>
+<body  alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066">
+<a name='_top'></a>
+<div class="toc">
+<ul>
+<li><a href='#NAME'>NAME</a>
+
+<ul>
+<li><a href='#Apache2::Filter'>Apache2::Filter</a>
+</ul><li><a href='#Trailing Verbatim'>Trailing Verbatim</a>
+<li><a href='#Various URIs'>Various URIs</a>
+<li><a href='#Verbatim'>Verbatim</a>
+<li><a href='#&lt;'>&lt;</a>
+</ul>
+</div>
+
+<div class='pod'><div>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='NAME'>NAME&uArr;</a></h1>
+<p>Apache2::Filter &amp; Extra Stuff</p>
+<p>This is the NAME content, with extra blank lines
+The '&amp;' caused problems.</p>
+<a name='Apache2::Filter'></a><h2>Apache2::Filter</h2>
+
+<p>The following used to confuse due to multiple MARK_FILTER instances
+with the same ID.</p>
+<p>Remember that if the connection is
+<font face='Courier New'><i><a href='http://search.cpan.org/perldoc?docs::2.0::api::Apache2::Connection#C_keepalive_'>$c-&gt;keepalive</a></i></font>
+) and the connection filter is removed, it won't be added until the
+connection is closed. Which may happen after many HTTP requests. You
+may want to keep the filter in place and pass the data through
+unmodified, by returning <font face='Courier New'>Apache2::Const::DECLINED</font>. If you need to reset the
+whole or parts of the filter context between requests, use the
+<i><a href='http://search.cpan.org/perldoc?docs::2.0::user::handler::filters'>technique based on <font face='Courier New'>$c-&gt;keepalives</font> counting</a></i>.</p>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='Trailing Verbatim'>Trailing Verbatim&uArr;</a></h1>
+<pre>  This used to be ignored.</pre>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='Various URIs'>Various URIs&uArr;</a></h1>
+<p>These all come from the tel RFC</p>
+<p><i><a href='fax:+358.555.1234567' target='_blank'>fax:+358.555.1234567</a></i></p>
+<p><i><a href='tel:+358-555-1234567' target='_blank'>tel:+358-555-1234567</a></i></p>
+<p><i><a href='http://search.cpan.org/perldoc?modem:+3585551234567;type=v32b?7e1;type=v110'>modem:+3585551234567;type=v32b?7e1;type=v110</a></i></p>
+<p><i><a href='tel:0w003585551234567;phone-context=+3585551234' target='_blank'>tel:0w003585551234567;phone-context=+3585551234</a></i></p>
+<p><i><a href='tel:+1234567890;phone-context=+1234;vnd.company.option=foo' target='_blank'>tel:+1234567890;phone-context=+1234;vnd.company.option=foo</a></i></p>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='Verbatim'>Verbatim&uArr;</a></h1>
+<pre>  =item C&lt;&lt; $thing-&gt;stuff(I&lt;dodad&gt;) &gt;&gt;)
+
+    That's what I&lt;you&gt; think!
+
+    What's C&lt;dump()&gt; for?
+
+    X&lt;C&lt;chmod&gt; and C&lt;unlink()&gt; Under Different Operating Systems&gt;
+
+    C&lt;thing&gt;
+    C&lt;&lt; thing &gt;&gt;
+    C&lt;&lt;           thing     &gt;&gt;
+    C&lt;&lt;&lt;   thing &gt;&gt;&gt;
+    C&lt;&lt;&lt;&lt;
+    thing
+               &gt;&gt;&gt;&gt;</pre>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='&lt;'>&lt;&uArr;</a></h1>
+<p>Test <i><a href='http://foo.bar.com/test' target='_blank'>http://foo.bar.com/test</a></i></p>
+<p>Send mail to <a href='mailto:foo@bar.com'>foo@bar.com</a></p>
+<p>Or to <i><a href='mailto://<a href='mailto:foo@bar.com'>foo@bar.com</a>' target='_blank'>mailto://<a href='mailto:foo@bar.com'>foo@bar.com</a></a></i></p>
+<p>end</p>
+</div></body></html>

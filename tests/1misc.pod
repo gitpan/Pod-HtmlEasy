@@ -1,0 +1,50 @@
+=pod
+
+package test;
+VERSION = 1.0
+
+=head1 NAME 
+
+this is 0.test
+this is the second line
+
+=head2 NAME I<foobar>
+
+=item C<This is bar bar>
+
+=head1 E<lt>
+
+
+
+This is the E<lt>
+
+
+
+L<"Section">
+
+Testing, testing & < > "
+
+mail foo@foo.com
+
+=head1 E-tests & Other Stuff
+
+=over 4
+
+B<L<http://www.foo.com> (foo site).>
+
+http://www.foo.com
+
+e-mail: <foo@foo.com>
+
+Testing, testing & < > "
+
+ENTITIES_BASIC E<lt>
+
+ENTITIES_COMMON E<Yacute>
+
+ENTITIES E<radic>
+
+ENTITIES_BASIC E<lt> Testing, testing & < > " E<radic> E<uArr> E<uarr>
+
+end
+

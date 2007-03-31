@@ -1,10 +1,9 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
-<title>./test/1.simple.pod</title>
+<title>./tests/2simple.pod</title>
 <style type="text/css">
-<!--
-
+ <!--
 BODY {
   background: white;
   color: black;
@@ -101,37 +100,37 @@ table.dlsip     {
   line-height: 1.2em;
   list-style-type: none;
 }
-
 --></style>
 </head>
-<body alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066"><a name='_top'></a>
-
+<body  alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066">
+<a name='_top'></a>
 <div class="toc">
 <ul>
-<li><a href='#simple-test'>simple test</a>
+<li><a href='#simple test'>simple test</a>
 
 <ul>
-<li><a href='#sub-title'>sub title</a>
+<li><a href='#sub title'>sub title</a>
 
 <ul>
 <li><a href='#foo'>foo</a>
 <li><a href='#bar'>bar</a>
-<li><a href='#-'>*</a>
+<li><a href='#*'>*</a>
 <li><a href='#end'>end</a>
-</ul><li><a href='#sub-title2'>sub title2</a>
+</ul><li><a href='#sub title2'>sub title2</a>
 </ul><li><a href='#LINKS'>LINKS</a>
+<li><a href='#Section'>Section</a>
 <li><a href='#Entities'>Entities</a>
-<li><a href='#more-formatters'>more formatters</a>
+<li><a href='#more formatters'>more formatters</a>
 <li><a href='#file'>file</a>
-
 </ul>
 </div>
 
 <div class='pod'><div>
-<a name='simple-test'></a><h1>simple test</h1>
-
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='simple test'>simple test&uArr;</a></h1>
 <p>bla bla bla bla</p>
-<a name='sub-title'></a><h2>sub title</h2>
+<a name='sub title'></a><h2>sub title</h2>
 
 <p>wowowo</p>
 <ul>
@@ -139,33 +138,43 @@ table.dlsip     {
 <p>asdasd</p>
 <li><a name='bar'></a><b>bar</b></li>
 <p>qweqwe</p>
-<li><p>bla bla</p>
+<li><a name='*'></a><b>*</b></li>
+<p>bla bla</p>
 <li><a name='end'></a><b>end</b></li>
 <p>by</p>
 </ul>
-<a name='sub-title2'></a><h2>sub title2</h2>
+<a name='sub title2'></a><h2>sub title2</h2>
 
 <p>mohhhhh</p>
-<a name='LINKS'></a><h1>LINKS</h1>
-
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='LINKS'>LINKS&uArr;</a></h1>
 <p><i><a href='http://search.cpan.org/perldoc?Foo::Bar#sect'>Text</a></i></p>
 <p><i><a href='http://search.cpan.org/perldoc?Foo::Bar'>Foo</a></i></p>
-<p><i><a href='http://search.cpan.org/perldoc?#Section'>"Section"</a></i></p>
+<p><i><a href='#Section'>"Section"</a></i></p>
 <p><i><a href='http://search.cpan.org/perldoc?Foo::Bar'>Foo::Bar</a></i></p>
-<p><b><a href='http://www.foo.com' target='_blank'>http://www.foo.com</a> (foo site).</b></p>
-<p><a href='http://www.foo.com' target='_blank'>http://www.foo.com</a></p>
+<p><b><i><a href='http://www.foo.com' target='_blank'>http://www.foo.com</a></i> (foo site).</b></p>
+<p><a href='http://www.foo.com'</a></p>
 <p>e-mail: &lt;<a href='mailto:foo@foo.com'>foo@foo.com</a>&gt;</p>
-<a name='Entities'></a><h1>Entities</h1>
-
-<p>&lt; &gt; | / &#65; &eacute;</p>
-<a name='more-formatters'></a><h1>more formatters</h1>
-
-<p>aa bbb cc</p>
+<p>or send some to <a href='mailto:bar@bar.com'>bar@bar.com</a></p>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='Section'>Section&uArr;</a></h1>
+<p>Target for link</p>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='Entities'>Entities&uArr;</a></h1>
+<p>&lt; &gt; &larr; &#8593; &#65; &eacute;</p>
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='more formatters'>more formatters&uArr;</a></h1>
+<p>a a
+b b b
+c c</p>
 <p>N&lt;3</p>
 <p>done</p>
-<a name='file'></a><h1>file</h1>
-
+<h1><a href='#_top'
+                  title='click to go to top of document' 
+                  name='file'>file&uArr;</a></h1>
 <p>file: <b><i>foo.txt</i></b></p>
-
-
 </div></body></html>

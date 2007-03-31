@@ -47,9 +47,15 @@ http://www.foo.com
 
 e-mail: <foo@foo.com>
 
+or send some to bar@bar.com
+
+=head1 Section
+
+Target for link
+
 =head1 Entities
 
-E<lt> E<gt> E<verbar> E<sol> E<65> E<eacute>
+E<lt> E<gt> E<larr> E<#8593> E<65> E<eacute>
 
 =head1 more formatters
 

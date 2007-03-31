@@ -1,5 +1,14 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.09    2007-04-01
+        - Subject code to perltidy and perlcritic.
+        - Refactor to deal with perlcritic criticism.
+        - Re-write link processing for efficiency
+        - Remove code that caused L<...> and E<...> to be interpolated
+          in verbatim paragraphs.
+        - Add head1 processing to extract title
+        - Add preprocessing to extract VERSION and PACKAGE
+
 0.08_03 2006-11-13
        - Make value of $VERSION a floating-point number
 

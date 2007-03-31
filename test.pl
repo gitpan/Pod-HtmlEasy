@@ -1,119 +1,61 @@
-#########################
-
-###use Data::Dumper ; print Dumper(  ) ;
+#! /usr/bin/perl
 
 use Test;
-BEGIN { plan tests => 1 } ;
+BEGIN { plan tests => 4 }
 
-use Pod::HtmlEasy ;
+use Pod::HtmlEasy;
+use File::Slurp;
 
-use strict ;
-use warnings ;
+use strict;
+use warnings;
 
-###########
-# CAT_DIR #
-###########
-
-sub cat_dir {
-  my ( $DIR ) = @_ ;
-  opendir (my $dh, $DIR);
-
-  my @files ;
-
-  while (my $filename = readdir $dh) {
-    if ($filename =~ /^(.*?)\.pod$/i) {
-      push(@files , "$DIR/$1") ;
+# An example of the definition of a non-standard formatting code
+my $podhtml = Pod::HtmlEasy->new(
+    on_G => sub {
+        my ( $this, $txt ) = @_;
+        $txt .= ".jpg" if $txt !~ /\.(?:jpg|gif|png)$/i;
+        return "<img src='$txt' border=0>";
     }
-  }
+);
 
-  closedir ($dh);
-  
-  return @files ;
-}
+my $test_dir = './tests';
+my @files = read_dir("$test_dir");
 
-############
-# CAT_FILE #
-############
+foreach my $files_i ( sort @files ) {
 
-sub cat_file {
-  my ( $file ) = @_ ;
-  my $data = '' ;
-  open (my $fh,$file) ;
-  1 while( read($fh, $data , 1024*8 , length($data) ) ) ;
-  close ($fh) ;
-  $data =~ s/\r\n?/\n/gs ;
-  return $data ;
-}
+    next if $files_i !~ s/\.pod$//;
+    my $pod_file  = "$test_dir/$files_i.pod";
+    my $html_file = "$test_dir/$files_i.html";
 
-#############
-# SHOW_DIFF #
-#############
-
-sub show_diff {
-  ## $from is the test result
-  ## $to is the "gold" file, which defines correct behavior
-  my ( $from , $to ) = @_ ;
-  
-  my @lines_from = split("\n" , $from) ;
-  my @lines_to = split("\n" , $to) ;
-  
-  my ( $i , $j ) = (0,0) ;
-  
-  for (; $i <= $#lines_from ; ++$i , ++$j ) {
-    my ($ln_from, $ln_to) = (' ', ' ');;
-    $ln_from = $lines_from[$i] if defined $lines_from[$i];
-    $ln_to   = $lines_to[$j]   if defined $lines_to[$j];
-    
-    if ( $ln_from ne $ln_to ) {
-      print "line $i> $ln_from\n" ;
+    my $html;
+    if ( !-r $html_file ) {
+        ## A wee hack to generate the HTMLs
+        $podhtml->pod2html(
+            $pod_file, $html_file,
+            index_item   => 1,
+            no_generator => 1,
+            top          => 'uArr',
+        );
+        next;
     }
-  }
-  
-}
-
-#########################
-{
-
-  # This defines the definition of a non-standard formatting code
-  my $podhtml = Pod::HtmlEasy->new(
-  on_G => sub {
-            my ( $this , $txt ) = @_ ;
-            $txt .= ".jpg" if $txt !~ /\.(?:jpg|gif|png)$/i ;
-            return "<img src='$txt' border=0>" ;
-          }
-  ) ;
-  
-  my @files = cat_dir('./test') ;
-  
-  foreach my $files_i ( sort @files ) {
-    print "testing: $files_i.pod ". ('.' x (18 - length($files_i)) ) ."... " ;
-
-    my $pod_file = "$files_i.pod" ;
-    my $html_file = "$files_i.html" ;
-
-    my $html ;
-    if ( !-s $html_file ) {
-      ## To generate the HTMLs
-      $html = $podhtml->pod2html($pod_file , $html_file , index_item => 1 , no_generator => 1) ; 
-    }
-    else { $html = $podhtml->pod2html($pod_file , index_item => 1 , no_generator => 1) ;}
-
-    my $chk_html = cat_file($html_file) ;
-    
-    $html =~ s/[\r\n]+/\n/gs ; $html =~ s/^\s+//s ; $html =~ s/\s+$//s ;
-    $chk_html =~ s/[\r\n]+/\n/gs ; $chk_html =~ s/^\s+//s ; $chk_html =~ s/\s+$//s ;
-    
-    if ( $html eq $chk_html ) { ok(1) ;}
     else {
-      ok(undef) ;
-      print "*** ERROR testing file: $pod_file\n" ;
-      show_diff($html , $chk_html) ;
+        $html = $podhtml->pod2html(
+            $pod_file,
+            index_item   => 1,
+            no_generator => 1,
+            top          => 'uArr',
+        );
     }
 
-  }
+    my $chk_html = read_file($html_file);
 
-  
+    if ( $html eq $chk_html ) { ok(1); }
+    else {
+        ok(0);
+        write_file( "${html_file}.fail", $html );
+        # Produces an un-helpful message. Sorry!
+        # Enable this to see what's gone wrong.`
+        # system("diff $html_file ${html_file}.fail);`
+    }
 }
-#########################
 
-print "\nThe End! Bye!\n" ;

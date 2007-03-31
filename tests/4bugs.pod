@@ -1,10 +1,11 @@
 =head1 NAME
 
-Apache2::Filter 
+Apache2::Filter & Extra Stuff
 
 
 
 This is the NAME content, with extra blank lines
+The '&' caused problems.
 
 
 
@@ -27,3 +28,46 @@ counting|docs::2.0::user::handler::filters>.
 =head1 Trailing Verbatim
 
   This used to be ignored.
+
+=head1 Various URIs
+
+These all come from the tel RFC
+
+L<fax:+358.555.1234567>
+
+L<tel:+358-555-1234567>
+
+L<modem:+3585551234567;type=v32b?7e1;type=v110 >
+
+L<tel:0w003585551234567;phone-context=+3585551234>
+
+L<tel:+1234567890;phone-context=+1234;vnd.company.option=foo>
+
+=head1 Verbatim
+
+  =item C<< $thing->stuff(I<dodad>) >>)
+
+    That's what I<you> think!
+
+    What's C<dump()> for?
+
+    X<C<chmod> and C<unlink()> Under Different Operating Systems>
+
+    C<thing>
+    C<< thing >>
+    C<<           thing     >>
+    C<<<   thing >>>
+    C<<<<
+    thing
+               >>>>
+
+=head1 E<lt>
+
+Test L<http://foo.bar.com/test>
+
+Send mail to foo@bar.com
+
+Or to L<mailto://foo@bar.com>
+
+end
+

@@ -11,7 +11,7 @@ WriteMakefile(
     'EXE_FILES'     => [ qw(script/podhtmleasy.pl) ],
     ($] >= 5.005 ?
       ( ABSTRACT_FROM => 'lib/Pod/HtmlEasy.pm',
-        AUTHOR        => 'Graciliano M. P. <gm@virtuasites.com.br>'
+        AUTHOR        => 'Graciliano M. P. <gm@virtuasites.com.br>, Geoffrey Leach <gleach@cpan.org>'
        ) : ()
      ),
 );
