@@ -847,8 +847,7 @@ __END__
 
 =head1 NAME
 
-Pod::HtmlEasy - Generate easy and personalized HTML from PODs,
-without extra modules and on "the flight".
+Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
@@ -1544,6 +1543,8 @@ the C<use warnings> specified for each module. .
 
 HtmlEasy uses Pod::Parser, which may produce error messages concerning malformed
 HTML.
+
+=back
 
 =head1 SEE ALSO
 
