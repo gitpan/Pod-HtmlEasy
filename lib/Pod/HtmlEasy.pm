@@ -11,7 +11,7 @@
 #############################################################################
 
 package Pod::HtmlEasy;
-use 5.008;
+#use 5.008;
 
 use Pod::HtmlEasy::Parser;
 use Pod::HtmlEasy::TieHandler;
@@ -24,7 +24,7 @@ use Regexp::Common qw{ whitespace };
 use strict;
 use warnings;
 
-our $VERSION = 0.09;    # Also appears in "=head1 VERSION" in the POD below
+our $VERSION = 0.0911;    # Also appears in "=head1 VERSION" in the POD below
 
 Readonly my $EMPTY => q{};
 Readonly my $NL    => qq{\n};
@@ -385,7 +385,9 @@ sub pod2html {
     push @html, qq{$args{index}$NL};
     push @html, qq{<div class='pod'><div>$NL};
     push @html, @{$output};                      # The pod converted to HTML
-    push @html, qq{</div></body></html>$NL};
+    push @html, q{</div>};
+    if ( not defined $args{only_content} ){ push @html, q{</body>}; } # [31784]
+    push @html, qq{</html>$NL};
 
     delete $this->{TIEDOUTPUT};
     close $html or carp q{Could not close html};
@@ -851,7 +853,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 0.09.
+This documentation refers to Pod::HtmlEasy version 0.0911.
 
 =head1 DESCRIPTION
 

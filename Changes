@@ -1,5 +1,8 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.0911  2007-12-24
+         - Fix [#31784]
+
 0.091   2007-04-03
          - Updated dependencies in Makefile.PL. No change to package version.
 
