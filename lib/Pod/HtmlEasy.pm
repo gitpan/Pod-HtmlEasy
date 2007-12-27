@@ -332,21 +332,22 @@ sub pod2html {
 
     # Build the header to the HTML file
     my @html;
-    push @html,
-        qq{<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">$NL};
-    push @html, qq{<html><head>$NL};
-    push @html,
-        qq{<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">$NL};
-
-    if ( not exists $args{no_generator} ) {
+    my $title_line_ref;
+    if ( not exists $args{only_content} ) {     # [31784]
         push @html,
-            qq{<meta name="GENERATOR" content="Pod::HtmlEasy/$VERSION Pod::Parser/$Pod::Parser::VERSION Perl/$] [$^O]">$NL};
-    }
-    push @html, qq{<title>$title</title>$NL};
-    my $title_line_ref = \$html[-1];
-    push @html, _organize_css( \%args );
-    push @html, qq{</head>$NL};
-    if ( not exists $args{only_content} ) {
+            qq{<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">$NL};
+        push @html, qq{<html><head>$NL};
+        push @html,
+            qq{<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">$NL};
+
+        if ( not exists $args{no_generator} ) {
+            push @html,
+                qq{<meta name="GENERATOR" content="Pod::HtmlEasy/$VERSION Pod::Parser/$Pod::Parser::VERSION Perl/$] [$^O]">$NL};
+        }
+        push @html, qq{<title>$title</title>$NL};
+        $title_line_ref = \$html[-1];
+        push @html, _organize_css( \%args );
+        push @html, qq{</head>$NL};
         push @html, _organize_body( \%args );
     }
 
@@ -375,7 +376,9 @@ sub pod2html {
 
     # If there's a head1 NAME, we've picked this up during processing
     if ( defined $this->{TITLE} && length $this->{TITLE} > 0 ) {
-        ${$title_line_ref} = qq{<title>$this->{TITLE}</title>$NL};
+        if (defined $title_line_ref) {
+            ${$title_line_ref} = qq{<title>$this->{TITLE}</title>$NL};
+        }
     }
 
   # Note conflict here: user can specify an index, and no_index; no_index wins
@@ -386,8 +389,9 @@ sub pod2html {
     push @html, qq{<div class='pod'><div>$NL};
     push @html, @{$output};                      # The pod converted to HTML
     push @html, q{</div>};
-    if ( not defined $args{only_content} ){ push @html, q{</body>}; } # [31784]
-    push @html, qq{</html>$NL};
+    if ( not exists $args{only_content} ) {     # [31784]
+        push @html, qq{</body></html>$NL};
+    }
 
     delete $this->{TIEDOUTPUT};
     close $html or carp q{Could not close html};
@@ -1295,7 +1299,8 @@ If set, the meta GENERATOR tag won't be added.
 
 =item only_content
 
-If set only generate the HTML content (between <body>...</body>).
+If set only generate the HTML content. This I<implies> no_generator and no_css,
+produces no <body> or <title>, and no DOCTYPE as well, so its really not very good HTML.
 
 =item parserwarn
 
@@ -1571,7 +1576,7 @@ Graciliano M. P. <gm@virtuasites.com.br>
 I will appreciate any type of feedback (include your opinions and/or suggestions). ;-P
 
 Thanks to Ivan Tubert-Brohman <itub@cpan.org> that suggested to add the basic_entities
-and common_entities options and for tests.
+and common_entities options and for tests. Thanks to ITO Nobuaki for the patches for [31784].
 
 =head1 MAINTENANCE
 
