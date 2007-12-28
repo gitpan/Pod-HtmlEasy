@@ -1,5 +1,8 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+0.0913  2007-12-28
+         - Fix Readonly syntax.
+
 0.0912  2007-12-27
          - Fix [#31784] once more
 

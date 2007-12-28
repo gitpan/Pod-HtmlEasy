@@ -24,12 +24,13 @@ use Switch qw{ Perl6 };
 use strict;
 use warnings;
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 
-Readonly my $EMPTY => q{};
-Readonly my $NL    => qq{\n};
-Readonly my $NUL   => qq{\0};
-Readonly my $SPACE => q{ };
+my ( $EMPTY, $NL, $NUL, $SPACE );
+Readonly::Scalar $EMPTY => q{};
+Readonly::Scalar $NL    => qq{\n};
+Readonly::Scalar $NUL   => qq{\0};
+Readonly::Scalar $SPACE => q{ };
 
 ########
 # VARS #

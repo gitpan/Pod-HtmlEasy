@@ -24,12 +24,13 @@ use Regexp::Common qw{ whitespace };
 use strict;
 use warnings;
 
-our $VERSION = 0.0911;    # Also appears in "=head1 VERSION" in the POD below
+our $VERSION = 0.0913;    # Also appears in "=head1 VERSION" in the POD below
 
-Readonly my $EMPTY => q{};
-Readonly my $NL    => qq{\n};
-Readonly my $NUL   => qq{\0};
-Readonly my $SPACE => q{ };
+my ( $EMPTY, $NL, $NUL, $SPACE );
+Readonly::Scalar $EMPTY => q{};
+Readonly::Scalar $NL    => qq{\n};
+Readonly::Scalar $NUL   => qq{\0};
+Readonly::Scalar $SPACE => q{ };
 
 ########
 # VARS #
@@ -857,7 +858,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 0.0911.
+This documentation refers to Pod::HtmlEasy version 0.0913.
 
 =head1 DESCRIPTION
 
