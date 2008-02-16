@@ -1,14 +1,39 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+1.000   2008-02-14
+         - Many changes, but here are some of them
+         - Cleaned up default css. It just defines what's needed.
+         - Rewrote index/toc generation; badly-managed tree replaced by simple
+           list, as the order is established by order in the POD.
+         - Workaround for issue with Regexp::Common, RT #32489, handling of %xx
+         - Squeeze multiple spaces/tabs out of =item and =head search
+           targets so that L<foo bar> finds =head1 foo  bar
+         - Repaired handling of DOS-format text file EOL (\n\r)
+         - Introduced use of version.pm
+         - Fixed: URL in verbatim text not displayed
+         - Fixed: =item * implies use of following text as item label
+         - Fixed: =item * foo => use foo as item label, without *
+         - Re-wrote test suite. Data.pm here mirroirs HtmlEasy/Data.pm
+           to catch errors in static output.
+         - Removed support for "=include". Not mentioned by perlpodspec.
+         - Added HtmlEasy/Data.pm in order to make the static output of POD
+           conversion available to the test suite.
+         - Removed TieHandler.pm. Conversion output now goes directly to
+           a list variable.
+
+0.0914   2008-01-15
+         - Set Perl version. Tests OK in 5.6.2 
+
 0.0913  2007-12-28
          - Fix Readonly syntax.
 
-0.0912  2007-12-27
-         - Fix [#31784] once more
-
+0.0912  2007-12-25
+         - Fix [#31784] again. Misinterpreted intent of option.
+           Hat tip to ITO Nobuaki.
+ 
 0.0911  2007-12-24
-         - Fix [#31784]
-
+         - Fix [#31784]. </body> appears if -only_content selected.
+ 
 0.091   2007-04-03
          - Updated dependencies in Makefile.PL. No change to package version.
 

@@ -4,175 +4,50 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
-## Updated:	    2007-02-28
-## Copyright:   (c) 2004 Graciliano M. P.
+## Updated:	    2008-02-14
+## Copyright:   (c) 2004 Graciliano M. P. (c) 2007, 2008 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
 #############################################################################
 
 package Pod::HtmlEasy;
-#use 5.008;
+use 5.006002;
+
+use strict;
+use warnings;
 
 use Pod::HtmlEasy::Parser;
-use Pod::HtmlEasy::TieHandler;
+use Pod::HtmlEasy::Data
+    qw( EMPTY NL NUL TRUE FALSE body css gen head headend title top toc toc_tag podon podoff );
 use File::Slurp;
 use Carp;
 use English qw{ -no_match_vars };
 use Readonly;
 use Regexp::Common qw{ whitespace };
 
-use strict;
-use warnings;
-
-our $VERSION = 0.0913;    # Also appears in "=head1 VERSION" in the POD below
-
-my ( $EMPTY, $NL, $NUL, $SPACE );
-Readonly::Scalar $EMPTY => q{};
-Readonly::Scalar $NL    => qq{\n};
-Readonly::Scalar $NUL   => qq{\0};
-Readonly::Scalar $SPACE => q{ };
+use version; our $VERSION = qv("1.0.0"); # Also appears in "=head1 VERSION" in the POD below
 
 ########
 # VARS #
 ########
 
-my %BODY_DEF = (
-    bgcolor => '#FFFFFF',
-    text    => '#000000',
-    link    => '#000000',
-    vlink   => '#000066',
-    alink   => '#FF0000',
-);
+Readonly::Scalar my $NUL            => NUL;
+Readonly::Scalar my $TITLE_TEXT_LOC => -2;
 
 # This keeps track of valid options
-my %OPTS = (
-    basic_entities  => 1,
-    body            => 1,
-    common_entities => 1,
-    css             => 1,
-    index           => 1,
-    index_item      => 1,
-    no_css          => 1,
-    no_generator    => 1,
-    no_index        => 1,
-    only_content    => 1,
-    parserwarn      => 1,
-    title           => 1,
-    top             => 1,
+Readonly::Hash my %OPTS => (
+    body         => 1,
+    css          => 1,
+    index        => 1,
+    index_item   => 1,
+    no_css       => 1,
+    no_generator => 1,
+    no_index     => 1,
+    only_content => 1,
+    parserwarn   => 1,
+    title        => 1,
+    top          => 1,
 );
-
-my $output_file;
-
-#######
-# CSS #
-#######
-
-my $CSS_DEF = q`
-BODY {
-  background: white;
-  color: black;
-  font-family: arial,sans-serif;
-  margin: 0;
-  padding: 1ex;
-}
-TABLE {
-  border-collapse: collapse;
-  border-spacing: 0;
-  border-width: 0;
-  color: inherit;
-}
-IMG { border: 0; }
-FORM { margin: 0; }
-input { margin: 2px; }
-A.fred {
-  text-decoration: none;
-}
-A:link, A:visited {
-  background: transparent;
-  color: #006699;
-}
-TD {
-  margin: 0;
-  padding: 0;
-}
-DIV {
-  border-width: 0;
-}
-DT {
-  margin-top: 1em;
-}
-TH {
-  background: #bbbbbb;
-  color: inherit;
-  padding: 0.4ex 1ex;
-  text-align: left;
-}
-TH A:link, TH A:visited {
-  background: transparent;
-  color: black;
-}
-A.m:link, A.m:visited {
-  background: #006699;
-  color: white;
-  font: bold 10pt Arial,Helvetica,sans-serif;
-  text-decoration: none;
-}
-A.o:link, A.o:visited {
-  background: #006699;
-  color: #ccffcc;
-  font: bold 10pt Arial,Helvetica,sans-serif;
-  text-decoration: none;
-}
-A.o:hover {
-  background: transparent;
-  color: #ff6600;
-  text-decoration: underline;
-}
-A.m:hover {
-  background: transparent;
-  color: #ff6600;
-  text-decoration: underline;
-}
-table.dlsip     {
-  background: #dddddd;
-  border: 0.4ex solid #dddddd;
-}
-.pod PRE     {
-  background: #eeeeee;
-  border: 1px solid #888888;
-  color: black;
-  padding-top: 1em;
-  white-space: pre;
-}
-.pod H1      {
-  background: transparent;
-  color: #006699;
-  font-size: large;
-}
-.pod H2      {
-  background: transparent;
-  color: #006699;
-  font-size: medium;
-}
-.pod IMG     {
-  vertical-align: top;
-}
-.pod .toc A  {
-  text-decoration: none;
-}
-.pod .toc LI {
-  line-height: 1.2em;
-  list-style-type: none;
-}
-`;
-
-###############
-# DEFAULT_CSS #
-###############
-
-sub default_css {
-    return $CSS_DEF;
-}
 
 #######################
 # _ORGANIZE_CALLBACKS #
@@ -207,11 +82,7 @@ sub _organize_callbacks {
     $this->{ON_BEGIN} = \&evt_on_begin;
     $this->{ON_END}   = \&evt_on_end;
 
-    $this->{ON_INDEX_NODE_START} = \&evt_on_index_node_start;
-    $this->{ON_INDEX_NODE_END}   = \&evt_on_index_node_end;
-
-    $this->{ON_INCLUDE} = \&evt_on_include;
-    $this->{ON_URI}     = \&evt_on_uri;
+    $this->{ON_URI} = \&evt_on_uri;
 
     $this->{ON_ERROR} = \&evt_on_error;
 
@@ -223,18 +94,12 @@ sub _organize_callbacks {
 #######
 
 sub new {
-    my $this = shift;
+    my ( $this, %args ) = @_;
     return $this if ref $this;
     my $class = $this || __PACKAGE__;
     $this = bless {}, $class;
 
-    my (%args) = @_;
     _organize_callbacks($this);
-
-    # Backwards compatibility
-    if ( exists $args{on_verbatin} ) {
-        $this->{ON_VERBATIM} = $args{on_verbatin};
-    }
 
     foreach my $key ( keys %args ) {
 
@@ -257,12 +122,14 @@ sub new {
 ############
 
 sub pod2html {
-    my $this = shift;
-    my $file = shift;
+    my @args = @_;
+
+    my $this = shift @args;
+    my $file = shift @args;
 
     # Assume a non-option second arg is a file name
-    my $save = exists $OPTS{ $_[0] } ? undef: shift;
-    my %args = @_;
+    my $save = exists $OPTS{ $args[0] } ? undef : shift @args;
+    my %args = @args;
 
     # Check options for validity
     foreach my $key ( keys %args ) {
@@ -272,25 +139,34 @@ sub pod2html {
     }
 
     # No /x please
-    if ( defined $save && $save =~ m{$NL}sm ) {
+    # \r\n is said to be not portable
+    if ( defined $save && $save =~ m{\cJ\cM}ms ) {
 
         # Is this a M$ way of saying "nothing there"?
         $save = undef;
     }
 
+   # Personal pecularity: I hate double negatives, and perlcritic hates unless
+    my ( $do_css, $do_generator, $do_index, $do_content );
+    if ( not exists $args{no_css} )       { $do_css       = 1; }
+    if ( not exists $args{no_generator} ) { $do_generator = 1; }
+    if ( not exists $args{no_index} )     { $do_index     = 1; }
+    if ( not exists $args{only_content} ) { $do_content   = 1; }
+
     # This will fall through to Pod::Parser::new
-    # which is the base for Pod::HtmlEasy::Parser
-    # and Pod::HtmlEasy::Parser does not implement new()
+    # which is the base for Pod::HtmlEasy::Parser.
+    # Pod::HtmlEasy::Parser does not implement new()
     my $parser = Pod::HtmlEasy::Parser->new();
 
-    $parser->errorsub( sub { Pod::HtmlEasy::Parser::errors( $parser, @_ ); }
+    $parser->errorsub( sub { Pod::HtmlEasy::Parser::_errors( $parser, @_ ); }
     );
 
-    # Pod::Parser wiii complain about multiple blank lines in the input
-    # which is moderately annoying
+ # Pod::Parser wiii complain about multiple blank lines in INDEX_ITEMthe input
+ # which is moderately annoying
     if ( exists $args{parserwarn} ) { $parser->parseopts( -warnings => 1 ); }
 
     # This allows us to search for non-POD stuff is preprocess_paragraph
+    # my $VERSION ..., for example
     $parser->parseopts( -want_nonPODs => 1 );
 
     # This puts a subsection in the $parser hash that will record data
@@ -299,28 +175,13 @@ sub pod2html {
     $parser->{POD_HTMLEASY} = $this;
 
     if ( exists $args{index_item} ) { $parser->{INDEX_ITEM} = 1; }
-    if ( exists $args{basic_entities} ) {
-        carp q{"basic_entities" is deprecated.};
-    }
-    if ( exists $args{common_entities} ) {
-        carp q{"common_entities" is deprecated.};
-    }
 
-    # *HTML supplies a PRINT method that's used by the parser to do output
-    # It gets accumulated into HTML, which is tied to $output.
-    # You'll also see calls to  print {$parser->output_handle()} ...
-    # which accomplishes the same thing. When all is said and done, the output
-    # of the parse winds up in $output declared below, and used in the construction
-    # of @html.
-
-    my $output = [];
-    local *HTML;
-    tie *HTML => 'Pod::HtmlEasy::TieHandler', $output;
-    my $html = \*HTML;
-    $this->{TIEDOUTPUT} = $html;
+    # This is where we accumulate the results of Pod::Parser
+    my @output;
+    $parser->{POD_HTMLEASY}->{HTML} = \@output;
 
     my $title = $args{title};
-    if ( ref $file eq q{GLOB} ) {    # $file is an open filehandle
+    if ( ref $file eq q{GLOB} ) {    # $file is an open file handle
         if ( not defined $title ) { $title = q{<DATA>}; }
     }
     else {
@@ -328,40 +189,39 @@ sub pod2html {
             carp qq{No file $file};
             return;
         }
-        if ( not defined $title ) { $title = $file; }
+        if ( not defined $title ) { $title = defined $save ? $save : $file; }
     }
 
     # Build the header to the HTML file
-    my @html;
-    my $title_line_ref;
-    if ( not exists $args{only_content} ) {     # [31784]
-        push @html,
-            qq{<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">$NL};
-        push @html, qq{<html><head>$NL};
-        push @html,
-            qq{<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">$NL};
+    my ( @html, $title_line_ref );
+    if ( defined $do_content ) {    # [31784]
+        push @html, head();
 
-        if ( not exists $args{no_generator} ) {
-            push @html,
-                qq{<meta name="GENERATOR" content="Pod::HtmlEasy/$VERSION Pod::Parser/$Pod::Parser::VERSION Perl/$] [$^O]">$NL};
+        if ( defined $do_generator ) {
+            push @html, gen( $VERSION, $Pod::Parser::VERSION );
         }
-        push @html, qq{<title>$title</title>$NL};
-        $title_line_ref = \$html[-1];
-        push @html, _organize_css( \%args );
-        push @html, qq{</head>$NL};
-        push @html, _organize_body( \%args );
+
+        push @html, title($title);
+
+        # Save  pointer for later, in case title gets replaced
+        # NB: index depends on the structure of the returned HTML
+        $title_line_ref = \$html[$TITLE_TEXT_LOC];
+
+        if ( defined $do_css ) { push @html, css( $args{css} ); }
+
+        push @html, headend;
+
+        push @html, body( $args{body} );
     }
 
     delete $this->{UPARROW};
     delete $this->{UPARROW_FILE};
     if ( exists $args{top} ) {
-        push @html, qq{$NL<a name='_top'></a>$NL};
-        if ( -e $args{top} ) {
-            $this->{UPARROW_FILE} = $args{top};
-        }
-        else {
-            $this->{UPARROW} = $args{top};
-        }
+        push @html, top;
+
+        # Checking for the file is the only way I know of to distinguish
+        if   ( -e $args{top} ) { $this->{UPARROW_FILE} = $args{top}; }
+        else                   { $this->{UPARROW}      = $args{top}; }
     }
 
     # Avoid carry-over on multiple files
@@ -371,189 +231,113 @@ sub pod2html {
     delete $this->{VERSION};
     $this->{INFO_COUNT} = 0;
 
-    # A filehandle as both args is not documented, but is supported
-    # Everything that Pod::Parser prints winds up in $output
-    $parser->parse_from_file( $file, $html );
+    $parser->parse_from_file($file);
 
     # If there's a head1 NAME, we've picked this up during processing
-    if ( defined $this->{TITLE} && length $this->{TITLE} > 0 ) {
-        if (defined $title_line_ref) {
-            ${$title_line_ref} = qq{<title>$this->{TITLE}</title>$NL};
-        }
+    # BUT, let the caller force override of NAME content
+    if (   exists $this->{TITLE}
+        && length $this->{TITLE} > 0
+        && !exists $args{title}
+        && defined $title_line_ref )
+    {
+        ${$title_line_ref} = $this->{TITLE};
     }
 
-  # Note conflict here: user can specify an index, and no_index; no_index wins
-    if ( not exists $args{index} ) { $args{index} = $this->build_index(); }
-    if ( exists $args{no_index} )  { $args{index} = $EMPTY; }
-
-    push @html, qq{$args{index}$NL};
-    push @html, qq{<div class='pod'><div>$NL};
-    push @html, @{$output};                      # The pod converted to HTML
-    push @html, q{</div>};
-    if ( not exists $args{only_content} ) {     # [31784]
-        push @html, qq{</body></html>$NL};
+    if ( defined $do_index ) {
+        push @html, $this->_do_index( $args{index} );
     }
 
-    delete $this->{TIEDOUTPUT};
-    close $html or carp q{Could not close html};
-    untie $html or carp q{Could not untie html};
+    push @html, podon;
+    push @html, @output;    # The pod converted to HTML
+    push @html, podoff( defined $args{only_content} ? 1 : undef );   # [31784]
+
+    # Add newlines to the HTML
+    @html = map { $_ . NL } @html;
 
     if ( defined $save ) {
-        open my $out, q{>}, $save or croak qq{Unable to open $save - $!};
-        print {$out} @html;
-        close $out;
+        open my $out, q{>}, $save or carp qq{Unable to open $save - $!};
+        print {$out} @html or carp qq{Could not write to $out};
+        close $out or carp qq{Could not close $out};
     }
 
-    return wantarray ? @html : join $EMPTY, @html;
+    return wantarray ? @html : join EMPTY, @html;
 }
 
-#################
-# PARSE_INCLUDE #
-#################
+#############
+# _DO_INDEX #
+#############
 
-sub parse_include {
-    my $this = shift;
-    my $file = shift;
+sub _do_index {
+    my ( $this, $add ) = @_;
 
-    my $parser = Pod::HtmlEasy::Parser->new();
-    $parser->errorsub( sub { Pod::HtmlEasy::Parser::errors( $parser, @_ ); }
-    );
-    $parser->{POD_HTMLEASY}         = $this;
-    $parser->{POD_HTMLEASY_INCLUDE} = 1;
+    if ( defined $add )             { return toc($add); }
+    if ( @{ $this->{INDEX} } == 0 ) { return toc(); }
 
-    $parser->parse_from_file( $file, $this->{TIEDOUTPUT} );
+    my @index;
+    my $index_ref  = $this->{INDEX};
+    my $cur_level  = 1;
+    my $doing_item = FALSE;
+    while ( my $index_element = shift @{$index_ref} ) {
+        my ( $level, $txt ) = @{$index_element};
 
-    return 1;
-}
+       # Eliminate http references. This is in aid of persons who use =item to
+       # list URLs.
+        my $tag = toc_tag($txt);
 
-##############
-# WALK_INDEX #
-##############
-
-sub walk_index {
-    my ( $this, $tree, $on_open, $on_close, $output ) = @_;
-
-    my $i = 0;
-    while ( $i < @{$tree} ) {
-        my $nk =
-            ref( ${$tree}[ $i + 1 ] ) eq q{ARRAY}
-            ? @{ ${$tree}[ $i + 1 ] }
-            : undef;
-        $nk = $nk >= 1 ? 1 : undef;
-
-        my $a_name = ${$tree}[$i];
-        $a_name =~ s{<.*?>}{}gsmx;
-
-        #$a_name =~ s{&\w+;}{}gsmx;
-        #$a_name =~ s{\W+}{-}gsmx;
-
-        if ($on_open) {
-            my $ret = $on_open->( $this, ${$tree}[$i], $a_name, $nk );
-            if ( $output and defined $ret ) {
-                ${$output} .= $ret;
-            }    # [6062]
-        }
-
-        if ($nk) {
-            walk_index( $this, ${$tree}[ $i + 1 ],
-                $on_open, $on_close, $output );
-        }
-
-        if ($on_close) {
-            my $ret = $on_close->( $this, ${$tree}[$i], $a_name, $nk );
-            if ( $output and defined $ret ) {
-                ${$output} .= $ret;
-            }    # [6062]
-        }
-        $i += 2;
-    }
-    return;
-}
-
-###############
-# BUILD_INDEX #
-###############
-
-sub build_index {
-    my $this = shift;
-
-    my $index = $EMPTY;    # [6062]
-    $this->walk_index(
-        $this->{INDEX},
-        $this->{ON_INDEX_NODE_START},
-        $this->{ON_INDEX_NODE_END}, \$index
-    );
-
-    return qq{<div class="toc">$NL<ul>$NL$index</ul>$NL</div>$NL};
-}
-
-#################
-# _ORGANIZE_BODY #
-#################
-
-sub _organize_body {
-    my $args_ref = shift;
-
-    my ( $body, %body );
-
-    $body = $EMPTY;
-    if ( ref $args_ref->{body} eq q{HASH} ) {
-        %body = %BODY_DEF;
-        my %body_attr = %{ $args_ref->{body} };
-        foreach my $key ( keys %body_attr ) {
-            $body{$key} = $body_attr{$key};
-        }
-    }
-    elsif ( !exists $args_ref->{body} ) { %body = %BODY_DEF; }
-
-    if (%body) {
-        foreach my $key ( sort keys %body ) {
-            if ( $body{$key} !~ m{\#}smx && defined $BODY_DEF{$key} ) {
-                $body{$key} = qq{#$body{$key}};
+   # =item lists are level 0 and generate a level change wherever they show up
+   # so, when we get a non-zero level we're indexing a non-item
+        if ($level) {
+            if ($doing_item) {
+                push @index, q{</ul>};
+                $cur_level--;
+                $doing_item = FALSE;
             }
-            my $value =
-                $body{$key} !~ m{"}smx
-                ? qq{"$body{$key}"}
-                : qq{'$body{$key}'};
-            $body .= qq{ $key=$value};
+
+            while ( $level > $cur_level ) {
+                $cur_level++;
+                push @index, q{<ul>};
+            }
+
+            while ( $level < $cur_level ) {
+                $cur_level--;
+                push @index, q{</ul>};
+            }
         }
-    }
-    else { $body = $args_ref->{body}; }
+        else {
 
-    return qq{<body $body>};
+            # Indexing an =item
+            if ( not $doing_item ) {
+                push @index, q{<ul>};
+                $cur_level++;
+                $doing_item = TRUE;
+            }
+
+            # Strip http to conform to =item
+            $txt =~ s{\Ahttps?://}{}gmx;
+            $tag = toc_tag($txt);
+        }
+
+        push @index, qq{<li><a href='#$tag'>$txt</a></li>};
+    }
+
+    while ( $cur_level > 1 ) {
+        $cur_level--;
+
+        # =item without an enclosing =head will get duplicate <ul> and </ul>s.
+        # That's OK, because its supposed to be illegal POD.
+        push @index, q{</ul>};
+    }
+
+    # Note LIST return. Result is pushed onto @html
+    return ( toc(@index) );
 }
 
-################
-# ORGANIZE_CSS #
-################
+#############
+# _DO_TITLE #
+#############
 
-sub _organize_css {
-    my $args_ref = shift;
-
-    my $css = exists $args_ref->{css} ? $args_ref->{css} : $CSS_DEF;
-    if ( exists $args_ref->{no_css} ) { $css = $EMPTY; }
-
-    # No 'x' on the match, please
-    if ( $css =~ m{$NL}sm ) {
-
-        # $css is data
-        return qq{<style type="text/css">$NL} . qq{ <!--${css}--></style>$NL};
-    }
-    elsif ( $css ne $EMPTY ) {
-
-        # $css is a file
-        return qq{<link rel="stylesheet" href="$css" type="text/css">$NL};
-    }
-    return $EMPTY;
-}
-
-##################
-# EVENT SUPPORT  #
-##################
-
-sub do_title {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
+sub _do_title {
+    my ( $this, $txt ) = @_;
 
     # This happens only on the _first_ head1 NAME
     if ( ( not exists $this->{TITLE} ) and ( $txt =~ m{\ANAME}smx ) ) {
@@ -578,104 +362,126 @@ sub do_title {
 ##################
 
 sub evt_on_head1 {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
+    my ( $this, $txt ) = @_;
 
-    if ( not defined $txt ) { $txt = $EMPTY; }
+    if ( not defined $txt ) { $txt = EMPTY; }
 
-    do_title( $this, $txt, $a_name );
+    my $tag = toc_tag($txt);
+
+    _do_title( $this, $txt );
+
+    # "Go to top" is attached to =head1 if selected.
+    if ( exists $this->{UPARROW} ) {
+        return
+              q{<h1><a href='#_top'} 
+            . NL
+            . q{title='click to go to top of document'}
+            . NL
+            . qq{name='$tag'>$txt&$this->{UPARROW};</a></h1>};
+    }
 
     if ( exists $this->{UPARROW_FILE} ) {
-        return qq{<h1><a href='#_top'
-                 title='click to go to top of document' 
-                 name='$a_name'>$txt<img src='$this->{UPARROW_FILE}'
-                 alt=&uArr;></a></h1>$NL};
-    }
-    elsif ( exists $this->{UPARROW} ) {
-        return qq{<h1><a href='#_top'
-                  title='click to go to top of document' 
-                  name='$a_name'>$txt&$this->{UPARROW};</a></h1>$NL};
+        return
+              q{<h1><a href='#_top'} 
+            . NL
+            . q{title='click to go to top of document'}
+            . NL
+            . qq{name='$tag'>$txt<img src='$this->{UPARROW_FILE}'}
+            . NL
+            . q{alt=&uArr;></a></h1>};
     }
 
-    return qq{<a name='$a_name'></a><h1>$txt</h1>$NL};
+    return qq{<a name='$tag'></a><h1>$txt</h1>};
 }
 
 sub evt_on_head2 {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
-    return qq{<a name='$a_name'></a><h2>$txt</h2>$NL$NL};
+    my ( $this, $txt ) = @_;
+
+    my $tag = toc_tag($txt);
+
+    return qq{<a name='$tag'></a><h2>$txt</h2>};
 }
 
 sub evt_on_head3 {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
-    return qq{<a name='$a_name'></a><h3>$txt</h3>$NL$NL};
+    my ( $this, $txt ) = @_;
+
+    my $tag = toc_tag($txt);
+
+    return qq{<a name='$tag'></a><h3>$txt</h3>};
 }
 
 sub evt_on_head4 {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
-    return qq{<a name='$a_name'></a><h4>$txt</h4>$NL$NL};
+    my ( $this, $txt ) = @_;
+
+    my $tag = toc_tag($txt);
+
+    return qq{<a name='$tag'></a><h4>$txt</h4>};
 }
 
 sub evt_on_begin {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
+    my ( $this, $txt ) = @_;
     $this->{IN_BEGIN} = 1;
-    return $EMPTY;
+    return EMPTY;
 }
 
 sub evt_on_end {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
+    my ( $this, $txt ) = @_;
     delete $this->{IN_BEGIN};
-    return $EMPTY;
+    return EMPTY;
 }
 
+# See perlpodsec for details on interpreting the items
 sub evt_on_L {
-    my $this = shift;
-    my ( $L, $text, $page, $section, $type ) = @_;
+    my ( $htis, $text, $inferred, $name, $section, $type ) = @_;
 
     if ( $type eq q{pod} ) {
-        $section = defined $section ? qq{#$section} : $EMPTY;    # [6062]
+        $section = defined $section ? qq{#$section} : EMPTY;    # [6062]
             # Corrupt the href to avoid having it recognized (and converted) by _add_uri_href
-        $text =~ s{\A(.)}{$1$NUL}smx;
-        return
-            defined $page
-            ? qq{<i><a href='h${NUL}ttp://search.cpan.org/perldoc?$page$section'>$text</a></i>}
-            : qq{<i><a href='$section'>$text</a></i>};    # Internal reference
-    }
-    elsif ( $type eq q{man} ) { return qq{<i>$text</i>}; }
-    elsif ( $type eq q{url} ) {
+        $inferred =~ s{\A(.)}{$1$NUL}smx;
+        my $toc_tag = toc_tag($section);
 
-# Corrupt the href to avoid having it recognized (and converted) by _add_uri_href
-        $page =~ s{\A(.)}{$1$NUL}smx;
-        $text =~ s{\A(.)}{$1$NUL}smx;
-        return qq{<i><a href='$page' target='_blank'>$text</a></i>};
+        # Possible bug in Pod::Parser
+        #if ( defined $name && not length $name ) { $name = undef; }
+        return
+            defined $name
+            ? qq{<i><a href='h${NUL}ttp://search.cpan.org/perldoc?}
+            . qq{$name$section'>$inferred</a></i>}
+            : qq{<i><a href='$toc_tag'>$inferred</a></i>}
+            ;    # Internal reference
     }
+    if ( $type eq q{man} ) {
+
+ # $name probably looks like "foo(1)", and the () are interpreted as metachars
+        if ( $inferred !~ m{\Q$name\E}mx ) { $inferred .= qq{ in $name}; }
+        return qq{<i>$inferred</i>};
+    }
+    if ( $type eq q{url} ) {
+
+        # We'll let _add_uri_href handle this.
+        return $name;
+    }
+
+    # Unknown type
+    return $inferred;
 }
 
 sub evt_on_B {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
     return qq{<b>$txt</b>};
 }
 
 sub evt_on_I {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
     return qq{<i>$txt</i>};
 }
 
 sub evt_on_C {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
     return qq{<font face='Courier New'>$txt</font>};
 }
 
 sub evt_on_E {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
 
     $txt =~ s{^&}{}smx;
     $txt =~ s{;$}{}smx;
@@ -684,106 +490,92 @@ sub evt_on_E {
 }
 
 sub evt_on_F {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
     return qq{<b><i>$txt</i></b>};
 }
 
 sub evt_on_S {
-    my $this = shift;
-    my $txt  = shift;
-    $txt =~ s{$NL}{$SPACE}gsmx;
+    my ( $this, $txt ) = @_;
+
+    # Eliminate newlines; dos files use \r\n
+    # \r\n is said to be not portable
+    $txt =~ s{[\cM\cJ]}{}gsmx;
     return $txt;
 }
 
-sub evt_on_X { return $EMPTY; }    # [20078]
+sub evt_on_X { return EMPTY; }    # [20078]
 
-sub evt_on_Z { return $EMPTY; }
+sub evt_on_Z { return EMPTY; }
 
 sub evt_on_verbatim {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
 
     return if exists $this->{IN_BEGIN};
 
     # Multiple empty lines are parsed as verbatim text by Pod::Parser
     # And will show up as empty <pre> blocks, which is mucho messy
     {
-        local $RS = $EMPTY;
+        local $RS = EMPTY;
         chomp $txt;
     }
 
-    if ( not length $txt ) { return $EMPTY; }
-    return qq{<pre>$txt</pre>$NL};
+    if ( not length $txt ) { return EMPTY; }
+    if ( exists $this->{IN_ITEM} ) {
+        delete $this->{IN_ITEM};
+        return evt_on_item( $this, $txt );
+    }
+    return qq{<pre>$txt</pre>};
 }
 
 sub evt_on_textblock {
-    my $this = shift;
-    my $txt  = shift;
-    return if exists $this->{IN_BEGIN};
-    return qq{<p>$txt</p>$NL};
+    my ( $this, $txt ) = @_;
+    if ( exists $this->{IN_BEGIN} ) { return; }
+    if ( exists $this->{IN_ITEM} ) {
+        delete $this->{IN_ITEM};
+        return evt_on_item( $this, $txt );
+    }
+    return qq{<p>$txt</p>};
 }
 
 sub evt_on_over {
-    my $this  = shift;
-    my $level = shift;
-    return qq{<ul>$NL};
+    my ( $this, $txt ) = @_;
+
+    # Note that level is ignored
+    return q{<ul>};
 }
 
 sub evt_on_item {
-    my $this = shift;
-    my ( $txt, $a_name ) = @_;
-    return qq{<li><a name='$a_name'></a><b>$txt</b></li>$NL};
+    my ( $this, $txt ) = @_;
+
+    if ( $txt eq q{*} ) {
+
+        # Use the content for the tag
+        $this->{IN_ITEM} = 1;
+        return EMPTY;
+    }
+
+    my $tag = toc_tag($txt);
+    return qq{<li><a name='$tag'></a>$txt</li>};
 }
 
-sub evt_on_back {
-    my $this = shift;
-    return qq{</ul>$NL};
-}
+sub evt_on_back { return q{</ul>}; }
 
-sub evt_on_for { return $EMPTY; }
+sub evt_on_for { return EMPTY; }
 
 sub evt_on_error {
-    my $this = shift;
-    my $txt  = shift;
+    my ( $this, $txt ) = @_;
     return qq{<!-- POD_ERROR: $txt -->};
 }
 
-sub evt_on_include {
-    my $this = shift;
-    my $file = shift;
-    return $file;
-}
-
 sub evt_on_uri {
-    my $this = shift;
-    my $uri  = shift;
-    my $target =
-        $uri !~ m{^(?:mailto|telnet|ssh|irc):}ismx
+    my ( $this, $uri ) = @_;
+    my $target
+        = $uri !~ m{^(?:mailto|telnet|ssh|irc):}ismx
         ? q{ target='_blank'}
-        : $EMPTY;    # [6062]
+        : EMPTY;    # [6062]
     my $txt = $uri;
     $txt =~ s{^mailto:}{}ismx;
     return qq{<a href='$uri'$target>$txt</a>};
-}
-
-sub evt_on_index_node_start {
-    my $this = shift;
-    my ( $txt, $a_name, $has_children ) = @_;
-
-    my $ret = qq{<li><a href='#$a_name'>$txt</a>$NL};
-    if ($has_children) {
-        $ret .= qq{$NL<ul>$NL};
-    }
-    return $ret;
-}
-
-sub evt_on_index_node_end {
-    my $this = shift;
-    my ( $txt, $a_name, $has_children ) = @_;
-
-    my $ret = $has_children ? q{</ul>} : undef;
-    return $ret;
 }
 
 ##############
@@ -791,7 +583,7 @@ sub evt_on_index_node_end {
 ##############
 
 sub pm_version {
-    my $this = ref( $_[0] ) ? shift: undef;
+    my $this = shift;
     if ( not defined $this ) {
         carp q{pm_version must be referenced through Pod::HtmlEasy};
         return;
@@ -805,7 +597,7 @@ sub pm_version {
 ##############
 
 sub pm_package {
-    my $this = ref( $_[0] ) ? shift: undef;
+    my $this = shift;
     if ( not defined $this ) {
         carp q{pm_package must be referenced through Pod::HtmlEasy};
         return;
@@ -819,7 +611,7 @@ sub pm_package {
 ###########
 
 sub pm_name {
-    my $this = ref( $_[0] ) ? shift: undef;
+    my $this = shift;
     if ( not defined $this ) {
         carp q{pm_name must be referenced through Pod::HtmlEasy};
         return;
@@ -832,7 +624,7 @@ sub pm_name {
 ###########################
 
 sub pm_package_version_name {
-    my $this = ref( $_[0] ) ? shift: undef;
+    my $this = shift;
     if ( not defined $this ) {
         carp
             q{pm_package_version_name must be referenced through Pod::HtmlEasy};
@@ -842,9 +634,11 @@ sub pm_package_version_name {
     return ( $this->pm_package(), $this->pm_version(), $this->pm_name() );
 }
 
-#######
-# END #
-#######
+################
+# DEFAULOT_CSS #
+################
+
+sub default_css { return css(); }
 
 1;
 
@@ -858,379 +652,40 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 0.0913.
+This documentation refers to Pod::HtmlEasy version 1.0.0.
 
 =head1 DESCRIPTION
 
 The purpose of this module is to generate HTML data from POD in a easy and personalized mode.
-
 By default the HTML generated is similar to the CPAN site style for module documentation.
 
 =head1 SYNOPSIS
 
-Simple usage:
-
-  my $podhtml = Pod::HtmlEasy->new() ;
-
-  my $html = $podhtml->pod2html( 'test.pod' ) ;
-
-  print "$html\n" ;
-
-Complete usage:
-
-  use Pod::HtmlEasy ;
-
-  Create the object and set local events subs:
-
-  Note that these are all the events, and examples of how to implement 
-  them. All of these events are, of course, already implemented, so if
-  the actions provided are adequate, no local subs are required.
-
-  The actual implementation of on_head1 is somewhat more complex, to
-  provide for the detection of the module title and insertion of the
-  uparrow.
-
-  my $podhtml = Pod::HtmlEasy->new (
-
-  on_B         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<b>$txt</b>" ;
-                  } ,
-
-  on_C         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<font face='Courier New'>$txt</font>" ;
-                  } ,
-
-  on_E         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    $txt =~ s{^&}{}smx;
-                    $txt =~ s{;$}{}smx;
-                    $txt = qq{#$txt} if $txt =~ /^\d+$/ ;
-                    return qq{\0&$txt;};
-                  } ,
-
-  on_F         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<b><i>$txt</i></b>" ;
-                  } ,
-
-  on_I         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return "<i>$txt</i>" ;
-                  } ,
-
-  on_L         => sub {
-                    my ( $this , $L , $text, $page , $section, $type ) = @_ ;
-                    if   ( $type eq 'pod' ) {
-		      $section = defined $section ? "#$section" : ''; 
-		      $page = '' unless defined $page; 
-                      return "<i><a href='http://search.cpan.org/perldoc?$page$section'>$text</a></i>" ;
-                    }
-                    elsif( $type eq 'man' ) { return "<i>$text</i>" ;}
-                    elsif( $type eq 'url' ) { return "<a href='$page' target='_blank'>$text</a>" ;}
-                  } ,
-
-  on_S         => sub {
-                    my ( $this , $txt ) = @_ ;
-                    $txt =~ s/\n/ /gs ;
-                    return $txt ;
-                  } ,
-
-  on_X         => sub { return '' ; } ,
-
-  on_Z         => sub { return '' ; } ,
-
-  on_back      => sub {
-		    my $this = shift ;
-		    return "</ul>$NL" ;
-  		  } ,
-
-  on_begin     => sub {
-		    my $this = shift ;
-		    my ( $txt , $a_name ) = @_ ;
-		    $this->{IN_BEGIN} = 1;
-		    return '';
-  		  } ,
-
-  on_error     => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return qq{<!-- POD_ERROR: $txt -->} ;
-                  } ,
-
-  on_end       => sub { 
-		    my $this = shift ;
-		    my ( $txt , $a_name ) = @_ ;
-		    delete $this->{IN_BEGIN};
-		    return '';
-                  } ,
-
-  on_for       => sub { return '' ;} ,
-
-  on_head1     => sub {
-                    my ( $this , $txt , $a_name ) = @_ ;
-                    return qq{<a name='$a_name'></a><h1>$txt</h1>$NL$NL} ;
-                  } ,
-
-  on_head2     => sub {
-                    my ( $this , $txt , $a_name ) = @_ ;
-                    return qq{<a name='$a_name'></a><h2>$txt</h2>$NL$NL} ;
-                  } ,
-
-  on_head3     => sub {
-                    my ( $this , $txt , $a_name ) = @_ ;
-                    return qq{<a name='$a_name'></a><h3>$txt</h3>$NL$NL} ;
-                  } ,
-
-  on_head4     => sub {
-                    my ( $this , $txt , $a_name ) = @_ ;
-                    return qq{<a name='$a_name'></a><h4>$txt</h4>$NL$NL} ;
-                  } ,
-
-  on_include   => sub {
-                    my ( $this , $file ) = @_ ;
-                    return qq{./$file} ;
-                  } ,
-
-  on_item      => sub {
-                    my ( $this , $txt ) = @_ ;
-                    return qq{<li>$txt</li>$NL} ;
-                  } ,
-
-  on_index_node_start => sub {
-		    my ( $this , $txt , $a_name , $has_children ) = @_ ;
-		    my $ret = qq{<li><a href='#$a_name'>$txt</a>$NL} ;
-		    $ret .= q{$NL<ul>$NL} if $has_children ;
-		    return $ret ;
-		  } ,
-
-  on_index_node_end => sub {
-		    my $this = shift ;
-		    my ( $txt , $a_name , $has_children ) = @_ ;
-		    my $ret = $has_children ? q{</ul>} : $EMPTY ;
-		    return $ret ;
-		  } ,
-
-  on_over      => sub {
-                    my ( $this , $level ) = @_ ;
-                    return qq{<ul>$NL? ;
-                  } ,
-
-  on_textblock => sub {
-                    my ( $this , $txt ) = @_ ;
-		    return if exists $this->{IN_BEGIN};
-                    return qq{<p>$txt</p>$NL} ;
-                  } ,
-
-  on_uri       => sub {
-                    my ( $this , $uri ) = @_ ;
-                    return qq{<a href='$uri' target='_blank'>$uri</a>{ ;
-                  } ,
-
-  on_verbatim  => sub {
-                    my ( $this , $txt ) = @_ ;
-            $txt =~ s{(\A$NL)*(\A$NL)\z}{}gsmx;
-		    return '' unless length $txt;
-                    return qq{<pre>$txt</pre>$NL} ;
-                  } ,
-  ) ;
-
-  ## Convert to HTML:
-
-  my $html = $podhtml->pod2html('test.pod' ,
-  				'test.html' ,
-			        title => 'POD::Test' ,
-			        body  => { bgcolor => '#CCCCCC' } ,
-			        css   => 'test.css' ,
-			       ) ;
-
-=head1 SUBROUTINES/METHODS
-
-=head2 new ( %EVENTS_SUBS )
-
-By default the object has it own sub to handler the events.
-
-But if you want to personalize/overwrite them you can set the keys in the initialization:
-
-I<(For examples of how to implement the event subs see L<USAGE> above).>
-
-=over 10
-
-=item on_B ( $txt )
-
-When I<B>I<<>I<...>I<>> is found. I<(bold text).>
-
-=item on_C ( $txt )
-
-When I<C>I<<>I<...>I<>> is found. I<(code text).>
-
-=item on_E ( $txt )
-
-When I<E>I<<>I<...>I<>> is found. I<(a character escape).>
-
-=item on_I ( $txt )
-
-When I<I>I<<>I<...>I<>> is found. I<(italic text).>
-
-=item on_L ( $L , $text, $page, $section, $type )
-
-When I<L>I<<>I<...>I<>> is found. I<(Link).>
-
-=over 10
-
-=item $L
-
-The link content. This is what is parsed to generate the other variables.
-
-=item $text
-
-The link text.
-
-=item $page
-
-The page of the link. Can be an URI, pack::age, or some other reference.
-
-=item $section
-
-The section of the $page.
-
-=item $type
-
-The type of the link: pod, man, url.
-
-=back
-
-=item on_F ( $txt )
-
-When I<F>I<<>I<...>I<>> is found. I<(used for filenames).>
-
-=item on_S ( $txt )
-
-When I<S>I<<>I<...>I<>> is found. I<(text contains non-breaking spaces).>
-
-=item on_X ( $txt )
-
-When I<X>I<<>I<...>I<>> is found. I<(a null (zero-effect) formatting code).>
-
-=item on_Z ( $txt )
-
-When I<Z>I<<>I<...>I<>> is found. I<(a null (zero-effect) formatting code).>
-
-=item on_back 
-
-When I<=back> is found.
-
-=item on_begin
-
-When I<=begin> is found.
-
-By default everything from '=begin' to '=end' is ignored.
-
-=item on_error ( $txt )
-
-Called on POD syntax error occurrence.
-
-=item on_head1 ( $txt , $a_name )
-
-When I<=head1> is found.
-
-=over 10
-
-=item $txt
-
-The text of the command.
-
-=item $a_name
-
-The text of the command filtered to be used as C<<a name="$a_name"></a>>.
-
-=back
-
-=item on_head2 ( $txt , $a_name )
-
-When I<=head2> is found. See I<on_head1>.
-
-=item on_head3 ( $txt , $a_name )
-
-When I<=head3> is found. See I<on_head1>.
-
-=item on_head4 ( $txt , $a_name )
-
-When I<=head4> is found. See I<on_head1>.
-
-=item on_for
-
-When I<=for> is found.
-
-I<By default '=for' is ignored.>
-
-=item on_item ( $txt )
-
-When I<=item foo> is found.
-
-=item on_end
-
-When I<=end> is found.
-See '=begin' above.
-
-=item on_include ( $file )
-
-When I<=include> is found.
-Should be used only to handle the localtion of the $file.
-
-=item on_index_node_start ( $txt , $a_name , $has_children )
-
-Called to build the INDEX. This is called when a node is start.
-I<$has_children> can be used to know if the node has childs (sub-nodes).
-
-=item on_index_node_end ( $txt , $a_name , $has_children )
-
-Called to build the INDEX. This is called when a node ends.
-I<$has_children> can be used to know if the node has childs (sub-nodes).
-
-=item on_over ( $level )
-
-When I<=over X> is found.
-
-=item on_textblock ( $txt )
-
-When normal text blocks are found.
-
-=item on_uri ( $uri )
-
-When an URI (URL, E-MAIL, etc...) is found.
-
-=item on_verbatim ( $txt )
-
-When VERBATIM data is found, trailing empty lines are deleted.
-
-Note: This interface was previously called "on_verbatin".
-That interface has been retained for backwards compatibility.
-
-=back
-
-=head2 pod2html ( POD_FILE|POD_DATA|FILEHANDLE, HTML_FILE, %OPTIONS )
+  use Pod::HtmlEasy;
+  my $podhtml = Pod::HtmlEasy->new ( optional local event subs );
+  my $html = $podhtml->pod2html( 'test.pod' );
+  print $html;
+
+=head2 pod2html ( POD_FILE|FILEHANDLE, HTML_FILE, %OPTIONS )
 
 Convert a POD to HTML. Returns the HTML data generated, as a string or as a
 list, according to context.
 
-=over 10
+=over
 
-=item POD_FILE|POD_DATA|GLOB
+=item POD_FILE|GLOB
 
-The POD file (file path), data (SCALAR) or FILEHANDLE (GLOB, opened).
+The POD file (file path) or FILEHANDLE (GLOB, opened).
+The special file handle, DATA is, of course, supported.
 
 =item HTML_FILE I<(optional)>
 
-The output HTML file path or FILEHANDLE.
+The output HTML file path. If you don't need this, just leave it out.
+In other words, no "undef" (or something similar) is required.
 
 =item %OPTIONS I<(optional)>
 
-=over 10
-
-=item basic_entities
-
-Deprecated. 
+=over
 
 =item body
 
@@ -1238,22 +693,23 @@ The body values.
 
 Examples:
 
-  body => q`alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066"` ,
+  ## Specify a complete body spec
+  body => q{alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066"} ,
 
-  ## Or:
+  or:
 
-  body => { bgcolor => "#CCCCCC" , link => "#0000FF" } , ## This will overwrite only this 2 values,
+  ## This will overwrite only these 2 values. You may also add new key-value combos.
+  body => { bgcolor => "#CCCCCC" , link => "#0000FF" } ,
 
 
-I<Default: alink="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066">
+Default: 
 
-=item common_entities
-
-Deprecated. 
+  link="#FF0000" bgcolor="#FFFFFF" link="#000000" text="#000000" vlink="#000066"
 
 =item css
 
 Can be a css file HREF or the css data.
+The file is distinguished by the fact that the value does not have a newline.
 
 Examples:
 
@@ -1268,23 +724,21 @@ Examples:
       font-family: arial,sans-serif;
       margin: 0;
       padding: 1ex;
-    }
-    TABLE {
-      border-collapse: collapse;
-      border-spacing: 0;
-      border-width: 0;
-      color: inherit;
-    }
-  ` ,
+    } ...` , 
 
 =item index
 
-Set the index data. If not set the index will be generated automatically, calling the event subs
-I<on_index_node_start> and I<on_index_node_end>
+Define the index data. If not set the index will be generated automatically, calling the event subs
+I<on_index_node_start> and I<on_index_node_end>.
+Otherwise, the I<entire> index will be defined by the value of the option, with the exception of
+the required HTML glue.
 
 =item index_item
 
-If set, items will be added in the index.
+If set (1), =items will be added in the index.
+
+If the =item line ("foo" in =item foo) is an URL (https?://...), whether or not its enclosed
+in LZ<>E<lt>E<gt>, the http?// is stripped, and a HTML link is created.
 
 =item no_css
 
@@ -1300,7 +754,7 @@ If set, the meta GENERATOR tag won't be added.
 
 =item only_content
 
-If set only generate the HTML content. This I<implies> no_generator and no_css,
+If set generate only the HTML content. This I<implies> no_generator and no_css,
 produces no <body> or <title>, and no DOCTYPE as well, so its really not very good HTML.
 
 =item parserwarn
@@ -1312,7 +766,8 @@ which can be annoying. Thus, it's disabled by default.
 =item title
 
 The title of the HTML.
-I<Default: content of the first =head1 NAME, or, failing that the file path>
+I<Default: content of the first =head1 NAME, or, failing that the file path of the 
+output file (if given) or the input file>.
 
 =item top
 
@@ -1326,29 +781,45 @@ either a literal character, a representation of a extended HTML character,
 
 =back
 
+=head2 Local Event Subs
+
+So, what are these optional local event subroutines? You have the ability to specify
+when creating an instance of Pod::HtmlEasy replacements for the subroutines that process
+the single-letter commands embedded in POD text, such as  I<"B>I<<...>I<>>I<">, or the = commands,
+such as =head1. You may also defined new single-letter commands by providing an event subroutine.
+Of course, all of the defined commands have implementations. See L<Extending POD>.
+
 =head1 Utility Functions
 
 =head2 default_css
 
-Returns the default CSS.
+Returns the default CSS. To augment, remove the last line, add your changes, and replace
+the last line.
 
 =head2 pm_version ( pod2html )
 
 Return the version of a Perl module file or I<undef>.
 This is extracted from a statement that looks like "VERSION = 5.0008"
+Needless to say, this is only avalable I<after> the POD is processed.
 
 =head2 pm_package ( pod2html )
 
-Return the package name of a Perl module file or I<undef>.
+Return the package name of the module from which the POD was extracted or I<undef>.
+Needless to say, this is only avalable I<after> the POD is processed.
 
 =head2 pm_name ( pod2html )
 
 Returns what follows the first instance of 
-I<=head1 NAME> description or I<undef>.
+C<=head1 NAME description> or I<undef>.
+The description is picked up from what follows NAME on the same line, 
+I<or> from the first nonblank line following the C<=head1 NAME>.
+
+Needless to say, this is only avalable I<after> the POD is processed.
 
 =head2 pm_package_version_name ( pod2html )
 
 Returns a list: ( pm_package, pm_version,  pm_name )
+Needless to say, this is only avalable I<after> the POD is processed.
 
 =head1 CHARACTER SET
 
@@ -1365,7 +836,7 @@ automagically. These characters are: &, <, >, "
 HTML (via its relationship with SGML) supports a large number of characters that are 
 outside the set supported by ISO 8859-1. These can be specified in the text by using
 the E&ls;...&gt; construct. These encodings are defined by ISO 10646, which is semi-informally
-known as UNICODE. http://www.unicode.org/Public/5.0.0/ucd/UCD.html.  For example, 
+known as L<UNICODE|http://www.unicode.org/Public/5.0.0/ucd/UCD.html>.  For example, 
 the "heart" symbol E&l;dhearts&gt;.
 These are listed in section 24.3.1,
 L<The list of characters|http://www.w3.org/TR/html4/sgml/entities.html#h-24.4.1>
@@ -1374,15 +845,16 @@ of the HTML 4.01 specification.
 =head1 EMBEDDED URIs
 
 Pod::HtmlEasy scans text (but not verbatim text!) for embedded URIs, such as C<http://foo.bar.com>
-that are I<not> embedded in L&ls;...&gt. Schemes detected are http, https, file and ftp. References
+that are I<not> embedded in L <...>. Schemes detected are http, https, file and ftp. References
 of the form foo@bar.com are treated as mailto references and are translated accordingly.
 
 Previous versions handled a more extensive list of URIs. It was thought that the overhead for
-processing these other schemes was not justified by their utility.
+processing these other schemes was not justified by their utility. That is, not supported by
+the Firefox browser. YMMV if you're using Internet Explorer!
 
 =head1 EXTENDING POD
 
-You can extend POD defining non-standard events.
+You can extend POD defining non-standard events.  
 
 For example, to enable the command I<"=hr">:
 
@@ -1408,21 +880,26 @@ So, to enable I<"G>I<<...>I<>>I<">:
 
 This script requires the following modules:
 
- L<Pod::HtmlEasy::Parser>
- L<Pod::HtmlEasy::TiehHandler>
+L<Pod::Parser>
+L<Pod::ParseLink>
 
- L< Carp>
- L< English>
- L< File::Slurp>
- L< Readonly>
- L< Regexp::Common>
- L< Switch>
+L<Pod::HtmlEasy::Parser>
+L<Pod::HtmlEasy::Data>
+
+L<Carp>
+L<English>
+L<English>
+L<File::Slurp>
+L<Regexp::Common>
+L<Readonly>
+L<Switch>
+L<version>
 
 =head1 DEFAULT CSS
 
 This is the default CSS added to the HTML.
 
-I<** If you will set your own CSS use this as base.>
+I<If you want to do your own CSS, use this as base.>
 
   BODY {
     background: white;
@@ -1523,19 +1000,11 @@ I<** If you will set your own CSS use this as base.>
 
 =head1 DIAGNOSTICS
 
-=over 10
+=over
 
 =item option I<key> is not supported
 
 You've used (mis-spelled?) an unrecognized option.
-
-=item "basic_entities" is deprecated
-
-Like it says.
-
-=item "common_entities" is deprecated
-
-Like it says.
 
 =item No file I<file>
 
@@ -1577,13 +1046,19 @@ Graciliano M. P. <gm@virtuasites.com.br>
 I will appreciate any type of feedback (include your opinions and/or suggestions). ;-P
 
 Thanks to Ivan Tubert-Brohman <itub@cpan.org> that suggested to add the basic_entities
-and common_entities options and for tests. Thanks to ITO Nobuaki for the patches for [31784].
+and common_entities options and for tests. [These options have been removed. As "modern"
+browsers don't need all that encoding. See L<CHARACTER SET> above.]. 
+
+Thanks to ITO Nobuaki for the patches for [31784].
 
 =head1 MAINTENANCE
-
+ 
 Updates for version 0.0803 and subsequent by Geoffrey Leach <gleach@cpan.org>
 
 =head1 LICENSE AND COPYRIGHT
+
+ Copyright 2004-2006 by M. P. Graciliano
+ Copyright 2007-2008 by Geoffrey Leach
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

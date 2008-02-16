@@ -4,39 +4,40 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     11/01/2004
-## Updated:	    2007-02-25
-## Copyright:   (c) 2004 Graciliano M. P.
+## Updated:	    2008-02-14
+## Copyright:   (c) 2004 Graciliano M. P. (c) 2007, 2008 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
 #############################################################################
 
 package Pod::HtmlEasy::Parser;
+use 5.006002;
 
 use base qw{ Pod::Parser };
 use Pod::Parser;
+use Pod::ParseLink;
+use Readonly;
+use Pod::HtmlEasy::Data qw(EMPTY NUL);
 
 use Carp;
 use English qw{ -no_match_vars };
-use Readonly;
 use Regexp::Common qw{ whitespace number URI };
+use Regexp::Common::URI::RFC2396 qw { $escaped };
+use Pod::Escapes qw{ e2char };
 use Switch qw{ Perl6 };
 
 use strict;
 use warnings;
 
-our $VERSION = 0.04;
-
-my ( $EMPTY, $NL, $NUL, $SPACE );
-Readonly::Scalar $EMPTY => q{};
-Readonly::Scalar $NL    => qq{\n};
-Readonly::Scalar $NUL   => qq{\0};
-Readonly::Scalar $SPACE => q{ };
+use version; our $VERSION = qv("1.0.0");
 
 ########
 # VARS #
 ########
 
-my $MAIL_RE = qr{
+Readonly::Scalar my $NUL => NUL;
+
+Readonly::Scalar my $MAIL_RE => qr{
          (         # grab all of this
          [\w-]+    # some word chars with '-' included   foo
          \0?       # possible NUL escape
@@ -85,7 +86,7 @@ my $MAIL_RE = qr{
 # the generated URI, but after the first character. These NULs are removed
 # by _remove _nul_escapes()
 
-my %html_entities = (
+Readonly::Hash my %html_entities => (
     q{&} => q{amp},
     q{>} => q{gt},
     q{<} => q{lt},
@@ -93,7 +94,7 @@ my %html_entities = (
 );
 
 my $HTML_ENTITIES_RE = join q{|}, keys %html_entities;
-$HTML_ENTITIES_RE = qr{$HTML_ENTITIES_RE};
+$HTML_ENTITIES_RE = qr{$HTML_ENTITIES_RE}mx;
 
 #################
 # _NUL_ESCAPE   #
@@ -101,7 +102,6 @@ $HTML_ENTITIES_RE = qr{$HTML_ENTITIES_RE};
 
 # Escape HTML-significant characters with ASCII NUL to differentiate them
 # from the same characters that get converted to entity names
-
 sub _nul_escape {
     my $txt_ref = shift;
 
@@ -144,24 +144,49 @@ sub _encode_entities {
 # process embedded URIs that are not noted in l<...> bracketing
 # Note that the HTML-significant characters are escaped;
 # The escapes are removed by _encode_entities
+# Note that there's no presumption that there's a URI in the
+# text, so not matching is _not_ and error.
 
 sub _add_uri_href {
     my ( $parser, $txt_ref ) = @_;
 
-    if ( ${$txt_ref} eq $EMPTY ) { return ${$txt_ref}; }
-
     if ( ${$txt_ref} =~ m{https?:}smx ) {
+
+# Replace escaped characters in URL with their ASCII equivalents
+# Regexp::Common escapes in path part, but not in host part, which appears correct
+# per the RFC. However, the Spamassassin folks use it in the host.
+# $escaped is defined by Regexp::Common::URI::RFC2396, and matches %xx
+# This is done first because if needed, the host part won't be parsed correctly
+        while ( ${$txt_ref} =~ m{($escaped)}mx ) {
+            my $esc = $1;
+            my $new = $1;
+            $new =~ s{%}{0x}mx;
+            $new = e2char($new);
+            ${$txt_ref} =~ s{$esc}{$new}gmx;
+        }
+
+        # target='_blank' causes load to a new window or tab
+        # See HTML 4.01 spec, section 6.16 Frame target names
         ${$txt_ref}
-            =~ s{$RE{URI}{HTTP}{-keep}{-scheme=>'https?'}}{<a href='$1'</a>}gsmx;
+            =~ s{$RE{URI}{HTTP}{-keep}{-scheme=>'https?'}}{<a href='$1' target='_blank'>$3</a>}gsmx;
+
+        return;
     }
+
     if ( ${$txt_ref} =~ m{ftp:}smx ) {
-        ${$txt_ref} =~ s{$RE{URI}{FTP}{-keep}}{<a href='$1'</a>}gsmx;
+        ${$txt_ref} =~ s{$RE{URI}{FTP}{-keep}}{<a href='$1'>$5</a>}gsmx;
+        return;
     }
+
     if ( ${$txt_ref} =~ m{file:}smx ) {
-        ${$txt_ref} =~ s{$RE{URI}{file}{-keep}}{<a href='$1'</a>}gsmx;
+        ${$txt_ref} =~ s{$RE{URI}{file}{-keep}}{<a href='$1'>$3</a>}gsmx;
+        return;
     }
+
     if ( ${$txt_ref} =~ m{$MAIL_RE}smx ) {
+        ${$txt_ref} =~ s{mailto://}{}smx;
         ${$txt_ref} =~ s{($MAIL_RE)}{<a href='mailto:$1'>$1</a>}gsmx;
+        return;
     }
 
     return;
@@ -170,6 +195,13 @@ sub _add_uri_href {
 ###########
 # COMMAND #
 ###########
+
+# Index levels, which translate into indentation in the index
+Readonly::Scalar my $LEVEL1 => 1;
+Readonly::Scalar my $LEVEL2 => 2;
+Readonly::Scalar my $LEVEL3 => 3;
+Readonly::Scalar my $LEVEL4 => 4;
+Readonly::Scalar my $LEVELL => 0;
 
 # Overrides command() provided by base class in Pod::Parser
 sub command {
@@ -187,102 +219,87 @@ sub command {
     _encode_entities( $parser, \$expansion );
     _remove_nul_escapes( \$expansion );
 
-# Create the index tag
-# a_name has the text of the expansion _without_ anything between '<' and '>',
-# which amounts to the HTML formatting codes, which are not processed by
-# the name directive.
-    my $a_name = $expansion;
-    $a_name =~ s{<.*?>}{}gsmx;
-
     my $html;
     given ($command) {
         when q{head1} {
-            _add_tree_point( $parser, $expansion, 1 );
+            _add_index( $parser, $expansion, $LEVEL1 );
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_HEAD1}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_HEAD1}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{head2} {
-            _add_tree_point( $parser, $expansion, 2 );
+            _add_index( $parser, $expansion, $LEVEL2 );
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_HEAD2}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_HEAD2}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{head3} {
-            _add_tree_point( $parser, $expansion, 3 );
+            _add_index( $parser, $expansion, $LEVEL3 );
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_HEAD3}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_HEAD3}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{head4} {
-            _add_tree_point( $parser, $expansion, 4 );
+            _add_index( $parser, $expansion, $LEVEL4 );
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_HEAD4}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_HEAD4}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{begin} {
-            _add_tree_point( $parser, $expansion, 4 );
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_BEGIN}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_BEGIN}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{end} {
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_END}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_END}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{over} {
-            if ( $parser->{INDEX_ITEM} ) {
-                $parser->{INDEX_ITEM_LEVEL}++;
-            }
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_OVER}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{item} {
+
+            # Items that begin with '* ' are ugly. Is it there for pod2man?
+            # Which is not the same as _only_ '*'
+            $expansion =~ s{\A\*\s+}{}mx;
+
             if ( $parser->{INDEX_ITEM} ) {
-                _add_tree_point( $parser, $expansion,
-                    ( 3 + ( $parser->{INDEX_ITEM_LEVEL} || 1 ) ) );
+                _add_index( $parser, $expansion, $LEVELL );
             }
+
+            # This is for the folks who use =item to list URLs
+            _add_uri_href( $parser, \$expansion );
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_ITEM}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
+                ->{ON_ITEM}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{back} {
-            if ( $parser->{INDEX_ITEM} ) {
-                $parser->{INDEX_ITEM_LEVEL}--;
-            }
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_BACK}( $parser->{POD_HTMLEASY}, $expansion );
         }
         when q{for} {
             $html = $parser->{POD_HTMLEASY}
-                ->{ON_FOR}( $parser->{POD_HTMLEASY}, $expansion, $a_name );
-        }
-        when q{include} {
-            my $file = $parser->{POD_HTMLEASY}
-                ->{ON_INCLUDE}( $parser->{POD_HTMLEASY}, $expansion );
-            if (   -e $file
-                && -r $file )
-            {
-                $parser->{POD_HTMLEASY}->parse_include($file);
-            }
+                ->{ON_FOR}( $parser->{POD_HTMLEASY}, $expansion );
         }
         default {
             if ( defined $parser->{POD_HTMLEASY}->{qq{ON_\U$command\E}} ) {
-                $html = $parser->{POD_HTMLEASY}
+                $html
+                    = $parser->{POD_HTMLEASY}
                     ->{qq{ON_\U$command\E}}( $parser->{POD_HTMLEASY},
                     $expansion );
             }
             elsif ( $command !~ /^(?:pod|cut)$/imx ) {
                 $html = qq{<pre>=$command $expansion</pre>};
             }
-            else { $html = $EMPTY; }
+            else { $html = EMPTY; }
         }
     };
 
-    if ( $html ne $EMPTY ) {
-        print { $parser->output_handle() } $html;
-    }    # [6062]
+    if ( $html ne EMPTY ) {
+        push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
+    }
 
     return;
 }
 
 ############
 # VERBATIM #
-############
+############$parser->{POD_HTMLEASY}
 
 # Overrides verbatim() provided by base class in Pod::Parser
 sub verbatim {
@@ -299,7 +316,7 @@ sub _verbatim {
 
     if ( exists $parser->{POD_HTMLEASY}->{IN_BEGIN} ) { return; }
     my $expansion = $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER};
-    $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} = $EMPTY;
+    $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} = EMPTY;
 
     _encode_entities( $parser, \$expansion );
 
@@ -312,8 +329,8 @@ sub _verbatim {
     # And remove any NUL escapes
     _remove_nul_escapes( \$html );
 
-    if ( $html ne $EMPTY ) {
-        print { $parser->output_handle() } $html;
+    if ( $html ne EMPTY ) {
+        push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
     }    # [6062]
 
     return;
@@ -349,7 +366,9 @@ sub textblock {
     # And remove any NUL escapes
     _remove_nul_escapes( \$html );
 
-    if ( $html ne $EMPTY ) { print { $parser->output_handle() } $html; }
+    if ( $html ne EMPTY ) {
+        push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
+    }
 
     return;
 }
@@ -386,10 +405,15 @@ sub interior_sequence {
                 ->{ON_I}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
         when q{L} {
-            my ( $text, $name, $section, $type ) = _parselink($seq_argument);
+
+            # L<> causes problems, but not with parselink.
+            if ( $seq_argument eq EMPTY ) {
+                _errors( $parser, q{Empty L<>} );
+                return EMPTY;
+            }
             $ret = $parser->{POD_HTMLEASY}->{ON_L}(
                 $parser->{POD_HTMLEASY},
-                $seq_argument, $text, $name, $section, $type
+                Pod::ParseLink::parselink($seq_argument)
             );
         }
         when q{S} {
@@ -403,7 +427,8 @@ sub interior_sequence {
         default {
             if ( defined $parser->{POD_HTMLEASY}->{qq{ON_\U$seq_command\E}} )
             {
-                $ret = $parser->{POD_HTMLEASY}
+                $ret
+                    = $parser->{POD_HTMLEASY}
                     ->{qq{ON_\U$seq_command\E}}( $parser->{POD_HTMLEASY},
                     $seq_argument );
             }
@@ -423,19 +448,20 @@ sub interior_sequence {
 # PREPROCESS_PARAGRAPH #
 ########################
 
-# Overrides preprocess_paragraph() provided by base class in Pod::Parser
-# NB: the text is _not altered.
-sub preprocess_paragraph {
-    my $parser = shift;
-    my ( $text, $line_num ) = @_;
+Readonly::Scalar my $INFO_DONE => 3;
 
-    if ( $parser->{POD_HTMLEASY}{INFO_COUNT} == 3 ) {
+# Overrides preprocess_paragraph() provided by base class in Pod::Parser
+# NB: the text is _not_ altered.
+sub preprocess_paragraph {
+    my ( $parser, $text, $line_num ) = @_;
+
+    if ( $parser->{POD_HTMLEASY}{INFO_COUNT} == $INFO_DONE ) {
         return $text;
     }
 
     if ( not exists $parser->{POD_HTMLEASY}{PACKAGE} ) {
         if ( $text =~ m{package}smx ) {
-            my ($pack) = $text =~ m{(\w+(?:::\w+)*)}smx;
+            my ($pack) = $text =~ m{package\s+(\w+(?:::\w+)*)}smx;
             if ( defined $pack ) {
                 $parser->{POD_HTMLEASY}{PACKAGE} = $pack;
                 $parser->{POD_HTMLEASY}{INFO_COUNT}++;
@@ -454,6 +480,9 @@ sub preprocess_paragraph {
     }
 
     # This situation is created by evt_on_head1()
+    # _do_title has found nothing following =head1 NAME, so it
+    # creates ...{TITLE}, and leaves it undef, so that it will be
+    # picked up here when the paragraph following is processed.
     if (    ( exists $parser->{POD_HTMLEASY}{TITLE} )
         and ( not defined $parser->{POD_HTMLEASY}{TITLE} ) )
     {
@@ -468,161 +497,17 @@ sub preprocess_paragraph {
     return $text;
 }
 
-##################
-# _PARSE_SECTION #
-##################
-
-# Parse a link that is not a URL to get the name and/or section
-# Algorithm may be found in perlpodspec. "About L<...> Codes"
-
-sub _parse_section {
-    my $link = shift;
-    $link =~ s{$RE{ws}{crop}}{}gsmx;    # delete surrounding whitespace
-
-    # L<"FooBar"> is a the way to specify a section without a name.
-    # However, L<Foo Bar> is possible, though deprecated. See below.
-    if ($link =~ m{
-                    \A          # beginning at the beginning
-                    "           # literal "
-                   }smx
-        )
-    {
-        $link =~ s{"}{}gsmx;                # strip the "s
-        $link =~ s{$RE{ws}{crop}}{}gsmx;    # and leading/trailing whitespace
-        return ( undef, $link );
-    }
-
-    # So now we have either a name by itself, or name/section
-    my ( $name, $section ) = split m{/}smx, $link, 2;
-
-    # Trim leading and trailing whitespace and quotes from section
-    $name =~ s{$RE{ws}{crop}}{}gsmx;
-    if ($section) {
-        $section =~ s{$RE{ws}{crop}}{}gsmx;    # leading/trailing
-        $section =~ s{"}{}gsmx;                # quotes
-        $section =~ s{$RE{ws}{crop}}{}gsmx;
-    }    # new leading/trailing
-
-# Perlpodspec observes that and acceptable way to distinguish between L<name> and
-# L<section> is that if the link contains any whitespace, then its a section.
-# The construct L<section> is deprecated.
-    if ( $name && $name =~ m{\s}smx && !defined $section ) {
-        $section = $name;
-        $name    = undef;
-    }
-
-    return ( $name, $section );
-}
-
-###############
-# _INFER_TEXT #
-###############
-
-# Infer the text content of a L<...> with no text| part (ie a text|-less link)
-# By definition (?) either name or section is nonempty, Algorithm from perlpodspec
-
-sub _infer_text {
-    my ( $name, $section ) = @_;
-
-    if ($name) {
-        return $section
-            ? q{"} . $section . q{"} . q{ in } . $name
-            : $name;
-    }
-
-    return q{"} . $section . q{"};
-}
-
 ##############
-# _PARSELINK #
+# _ADD_INDEX #
 ##############
 
-# Parse the content of L<...> and return
-#   The text label
-#   The name or URL
-#   The section (if relevant)
-#   The type of link discovered: url, man or pod
+sub _add_index {
+    my ( $parser, $txt, $level ) = @_;
 
-sub _parselink {
-    my $link = shift;
-    my $text;
+    # Don't index star items
+    if ( $txt eq q{*} ) { return; }
 
-    # Squeeze out multiple spaces
-    $link =~ s{\s+}{$SPACE}gsmx;
-
-    if ( $link =~ m{\|}smx ) {
-
-        # Link is in the form "L<Foo|Foo::Bar>"
-        ( $text, $link ) = split m{\|}smx, $link, 2;
-    }
-
-# Check for a generalized URL. The regex is defined in perlpodspec.
-# Quoting perlpodspec: "Authors wanting to link to a particular (absolute) URL, must do so
-# only with "L<scheme:...>" codes and must not attempt "L<Some Site Name|scheme:...>"
-# Consequently, although $text might be nonempty, we ignore it.
-    if ($link =~ m{
-                    \A      # The beginning of the string
-                    \w+     # followed by some alphanumerics, which would be the protocol (or scheme)
-                    :       # literal ":"
-                    [^:\s]  # one char that is neither a ":" or whitespace
-                    \S*     # maybe some non-whitespace
-                    \z      # the end of the string
-                   }smx
-        )
-    {
-        return ( $link, $link, undef, q{url} );
-    }
-
-    # OK, we've eliminated URLs, so we must be dealing with something else
-
-    my ( $name, $section ) = _parse_section($link);
-    if ( not defined $text ) { $text = _infer_text( $name, $section ); }
-
-# A link with parenthesized non-whitespace is assumed to be a manpage reference
-# (per perlpodspec))
-    my $type =
-        ( $name && $name =~ m{\(\S*\)}smx )
-        ? q{man}
-        : q{pod};
-
-    return ( $text, $name, $section, $type );
-}
-
-###################
-# _ADD_TREE_POINT #
-###################
-
-sub _add_tree_point {
-    my ( $parser, $name, $level ) = @_;
-    $level ||= 1;
-
-    if ( $level == 1 ) {
-        $parser->{POD_HTMLEASY}->{INDEX}{p}
-            = $parser->{POD_HTMLEASY}->{INDEX}{tree};
-    }
-    else {
-        if ( exists $parser->{POD_HTMLEASY}->{INDEX}{p} ) {
-            while ( $parser->{POD_HTMLEASY}
-                ->{INDEX}{l}{ $parser->{POD_HTMLEASY}->{INDEX}{p} }
-                > ( $level - 1 ) )
-            {
-                last
-                    if !$parser->{POD_HTMLEASY}
-                    ->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} };
-                $parser->{POD_HTMLEASY}->{INDEX}{p} = $parser->{POD_HTMLEASY}
-                    ->{INDEX}{b}{ $parser->{POD_HTMLEASY}->{INDEX}{p} };
-            }
-        }
-    }
-
-    my $array = [];
-
-    $parser->{POD_HTMLEASY}->{INDEX}{l}{$array} = $level;
-    $parser->{POD_HTMLEASY}->{INDEX}{b}{$array}
-        = $parser->{POD_HTMLEASY}->{INDEX}{p};
-
-    push @{ $parser->{POD_HTMLEASY}->{INDEX}{p} }, $name, $array;
-    $parser->{POD_HTMLEASY}->{INDEX}{p} = $array;
+    push @{ $parser->{POD_HTMLEASY}->{INDEX} }, [ $level, $txt ];
 
     return;
 
@@ -636,10 +521,8 @@ sub _add_tree_point {
 sub begin_pod {
     my ($parser) = @_;
 
-    if ( $parser->{POD_HTMLEASY_INCLUDE} ) { return; }
-
     delete $parser->{POD_HTMLEASY}->{INDEX};
-    $parser->{POD_HTMLEASY}->{INDEX} = { tree => [] };
+    $parser->{POD_HTMLEASY}->{INDEX} = [];
 
     return 1;
 }
@@ -652,17 +535,9 @@ sub begin_pod {
 sub end_pod {
     my ($parser) = @_;
 
-    if ( $parser->{POD_HTMLEASY_INCLUDE} ) { return; }
-
     if ( defined $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} ) {
         _verbatim($parser);
     }
-
-    my $tree = $parser->{POD_HTMLEASY}->{INDEX}{tree};
-
-    delete $parser->{POD_HTMLEASY}->{INDEX};
-
-    $parser->{POD_HTMLEASY}->{INDEX} = $tree;
 
     return 1;
 }
@@ -680,8 +555,8 @@ sub _errors {
 
     my $html = $parser->{POD_HTMLEASY}
         ->{ON_ERROR}( $parser->{POD_HTMLEASY}, $error );
-    if ( $html ne $EMPTY ) {
-        print { $parser->output_handle() } $html, $NL;
+    if ( $html ne EMPTY ) {
+        push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
     }
 
     return 1;

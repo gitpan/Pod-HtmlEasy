@@ -1,16 +1,14 @@
-#################
-# POD::HTMLEASY #
-#################
+POD::HTMLEASY 
 
 Pod::HtmlEasy - Generate HTML from POD easy, without extra modules and on the flight.
 
-###############
-# DESCRIPTION #
-###############
+DESCRIPTION 
 
-The purpose of this module is to generate HTML data from POD in a easy and personalizable mode.
+The purpose of this module is to generate HTML data from POD in a easy
+and personalizable mode.
 
-By default the HTML generated is simillar to CPAN style for modules documentations.
+By default the HTML generated is simillar to CPAN style for module
+documentation.
 
 See POD for more...
 
@@ -18,32 +16,34 @@ An example of the use of this module can be found in the script directory,
 as podhtmleasy.pl.  A more elaborate example may be found in the CPAN author
 directory for GLEACH, poe2indexed_html-xx.pl
 
-################
-# INSTALLATION #
-################
+INSTALLATION 
 
-To install this module type the following:
+Standard install
 
    perl Makefile.PL
    make
    make test
    make install
 
-##########
-# AUTHOR #
-##########
+RUNNING TESTS
+
+"make test" works fine, to run tests with prove or perl from the package
+directory, add "-I blib/lib" or "-I lib" to the command line.
+Say "setenv DUMPHTML 1" to get per-test HTML output in files.
+
+AUTHOR 
 
 Graciliano M. P. <gm@virtuasites.com.br>
 
-I will appreciate any type of feedback (include your opinions and/or suggestions). ;-P
+I will appreciate any type of feedback (include your opinions and/or
+suggestions). ;-P
 
 Geoffrey Leach <gleach@cpan.org>
 
-Maintenance
+Maintenance and enhancement. Please report bugs via RT.
 
-############# 
-# COPYRIGHT #
-#############
+COPYRIGHT 
 
-This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
 
