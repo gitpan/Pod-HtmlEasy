@@ -25,7 +25,8 @@ use English qw{ -no_match_vars };
 use Readonly;
 use Regexp::Common qw{ whitespace };
 
-use version; our $VERSION = qv("1.0.0"); # Also appears in "=head1 VERSION" in the POD below
+#use version; our $VERSION = qv("1.0.0"); # Also appears in "=head1 VERSION" in the POD below
+our $VERSION = 1.0000;
 
 ########
 # VARS #
