@@ -11,7 +11,6 @@
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
 #      VERSION:  1.0
 #      CREATED:  12/20/07 13:29:02 PST
-#     REVISION:  ---
 #===============================================================================
 
 package Run;
@@ -24,8 +23,9 @@ use Carp;
 use English qw{ -no_match_vars };
 use File::Slurp;
 use Readonly;
+use IPC::Run qw( start pump finish );
 use Test::More qw(no_plan);
-use version; our $VERSION = qv('1.0'); # Also appears in "=head1 VERSION" in the POD below
+use version; our $VERSION = qv('1.0.2');
 
 BEGIN {
     use_ok(q{Pod::HtmlEasy});
@@ -33,8 +33,9 @@ BEGIN {
         qw( EMPTY NL body css gen head headend title toc top podon podoff ) );
 }
 
-use Exporter qw( import );
-our @EXPORT_OK = qw( run html_file );
+use Exporter::Easy (
+    OK => [ qw( run html_file ) ],
+);
 
 my $pod_file  = q{./test.pod};
 my $html_file = q{./test.html};
@@ -80,12 +81,39 @@ sub run {
         delete $opts->{htmleasy};
     }
     my @html;
-    if ( exists $opts->{outfile} ) {
+    if ( exists $opts->{stdio} ) {
+        # Generate code to pipe @pod to pod2html and retrieve outptut
+        # Avoid complaint option stdio not suported
+        delete $opts->{stdio};
+
+        my ($in, $out, $err);
+        # Execute this
+        my @cmd = qw{/usr/bin/perl -Ilib -MPod::HtmlEasy -e};
+        # Note: no "'"!
+        # To test the "-" file convention, add '"-",' after the left paren
+        my $cmd = q{Pod::HtmlEasy->new->pod2html(};
+        # Stringify options, add to -e command
+        foreach my $k ( keys %{$opts} ) {
+            $cmd .= $k . q{,} . $opts->{$k} . q{,};
+        }
+        $cmd .= q{)};
+        # Complete the command
+        push @cmd, $cmd;
+        my $harness = start \@cmd, \$in, \$out, \$err;
+        foreach my $p ( @pod ) {
+            $in .= $p;
+            $harness->pump;
+        }
+        $harness->finish;
+        @html = map { "$_\n" } split qq{\n}, $out;
+        warn $err if $err ;
+    }
+    elsif ( exists $opts->{outfile} ) {
 
         # Outfile is for this;
         my $outfile = $opts->{outfile};
         delete $opts->{outfile};
-        @html = $htmleasy->pod2html( $pod_file, $outfile, %{$opts} );
+        @html = $htmleasy->pod2html( $pod_file, q{output}, $outfile, %{$opts} );
     }
     else {
         @html = $htmleasy->pod2html( $pod_file, %{$opts} );
@@ -96,7 +124,7 @@ sub run {
             @expect = head();
             if ( not exists $opts->{no_generator} ) {
                 push @expect,
-                    gen( $Pod::HtmlEasy::VERSION, $Pod::Parser::VERSION );
+                    gen( $Pod::HtmlEasy::VER, $Pod::Parser::VERSION );
             }
             push @expect, title( $opts->{title} );
             if ( exists $opts->{css} ) {

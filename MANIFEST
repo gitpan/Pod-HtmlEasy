@@ -6,6 +6,7 @@ Makefile.PL
 MANIFEST			This list of files
 README
 script/podhtmleasy.pl
+script/podhtmleasy.sh
 t/bugs.t
 t/data.t
 t/html.t

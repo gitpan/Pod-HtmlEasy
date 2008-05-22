@@ -182,13 +182,13 @@ run(q{ignored controls},
 #--------------------------- test 11
 
 run(q{various URIs},
-    [   q{http://fedoraproject.org/}, q{https://fedoraproject.org/},
+    [   q{http://fedoraproject.org}, q{https://fedoraproject.org},
         q{ftp://fedoraproject.org/},  q{file:///etc/hosts/},
         q{root@fedoraproject.org},
     ],
-    [   q{<p><a href='http://fedoraproject.org/' target='_blank'>}
+    [   q{<p><a href='http://fedoraproject.org' target='_blank'>}
             . q{fedoraproject.org</a></p>},
-        q{<p><a href='https://fedoraproject.org/' target='_blank'>}
+        q{<p><a href='https://fedoraproject.org' target='_blank'>}
             . q{fedoraproject.org</a></p>},
         q{<p><a href='ftp://fedoraproject.org/'>fedoraproject.org</a></p>},
         q{<p><a href='file:///etc/hosts/'>/etc/hosts/</a></p>},
@@ -199,8 +199,8 @@ run(q{various URIs},
 #--------------------------- test 12
 
 run(q{various L<>},
-    [   q{L<http://fedoraproject.org/>},
-        q{L<https://fedoraproject.org/>},
+    [   q{L<http://fedoraproject.org>},
+        q{L<https://fedoraproject.org>},
         q{L<ftp://fedoraproject.org/>},
         q{L<file:///etc/hosts/>},
         q{L<mailto://root@fedoraproject.org>},
@@ -247,9 +247,9 @@ run(q{various L<>},
         # we punt to mail.
         q{L<news:yld72axzc8.fsf@windlord.stanford.edu>},
     ],
-    [   q{<p><a href='http://fedoraproject.org/' target='_blank'>}
+    [   q{<p><a href='http://fedoraproject.org' target='_blank'>}
             . q{fedoraproject.org</a></p>},
-        q{<p><a href='https://fedoraproject.org/' target='_blank'>}
+        q{<p><a href='https://fedoraproject.org' target='_blank'>}
             . q{fedoraproject.org</a></p>},
         q{<p><a href='ftp://fedoraproject.org/'>fedoraproject.org</a></p>},
         q{<p><a href='file:///etc/hosts/'>/etc/hosts/</a></p>},

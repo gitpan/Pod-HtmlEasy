@@ -14,7 +14,7 @@
 #                    file and Pod::HtmlEasy::Data.pm deliver the same data.
 #                    The two modules should, of course, have the same version
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  0.01
+#      VERSION:  1.0002
 #      CREATED:  10/17/07 15:14:33 LPDT
 #    COPYRIGHT:  (c) 2008 Geoffrey Leach
 #
@@ -26,7 +26,7 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv("0.1.4");
+use version; our $VERSION = qv("1.0.2"); # Should be in sync with HtmlEasy::Data
 
 sub EMPTY { return q{}; }
 sub NL    { return $INPUT_RECORD_SEPARATOR; }
@@ -53,7 +53,7 @@ sub gen {
     return $g;
 }
 
-sub podon { return q{<div class='pod'><div>}; }
+sub podon { return q{<div class='pod'>}; }
 
 sub podoff {
     my $no_body = shift;

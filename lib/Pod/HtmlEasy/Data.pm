@@ -10,9 +10,9 @@
 #        NOTES:  --- The intent of this module is to localize some of the HTML
 #                    generation so as to make it accessible to the test suite.
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:   1.0.0
+#      VERSION:   1.0.1
 #      CREATED:  10/17/07 15:14:33 LPDT
-#      UPDATED:   2/14/08
+#      UPDATED:  05/31/08
 #    COPYRIGHT:  (c) 2008 Geoffrey Leach
 #
 #===============================================================================
@@ -23,11 +23,14 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv("1.0.0");
+use version; our $VERSION = qv("1.0.2");
 
-use Exporter qw( import );
-our @EXPORT_OK = qw( EMPTY FALSE NL NUL SPACE TRUE
-    body css gen head headend podoff podon title toc toc_tag top );
+use Exporter::Easy (
+    OK => [
+        qw( EMPTY FALSE NL NUL SPACE TRUE
+            body css gen head headend podoff podon title toc toc_tag top )
+    ],
+);
 
 sub EMPTY { return q{}; }
 sub NL    { return $INPUT_RECORD_SEPARATOR; }
@@ -54,7 +57,7 @@ sub gen {
     return $g;
 }
 
-sub podon { return q{<div class='pod'><div>}; }
+sub podon { return q{<div class='pod'>}; }
 
 sub podoff {
     my $no_body = shift;

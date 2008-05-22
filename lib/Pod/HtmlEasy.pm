@@ -4,7 +4,7 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
-## Updated:	    2008-02-14
+## Updated:	    2008-05-31
 ## Copyright:   (c) 2004 Graciliano M. P. (c) 2007, 2008 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
@@ -19,14 +19,17 @@ use warnings;
 use Pod::HtmlEasy::Parser;
 use Pod::HtmlEasy::Data
     qw( EMPTY NL NUL TRUE FALSE body css gen head headend title top toc toc_tag podon podoff );
-use File::Slurp;
 use Carp;
 use English qw{ -no_match_vars };
+use File::Slurp;
 use Readonly;
 use Regexp::Common qw{ whitespace };
 
-#use version; our $VERSION = qv("1.0.0"); # Also appears in "=head1 VERSION" in the POD below
-our $VERSION = 1.0000;
+use version;
+our $VER = qv("1.1.0");    # Also appears in "=head1 VERSION" in the POD below
+
+# Why this? CPAN (a/o 1/1/2008) does not grok qv.
+our $VERSION = 1.01.00;
 
 ########
 # VARS #
@@ -41,6 +44,7 @@ Readonly::Hash my %OPTS => (
     css          => 1,
     index        => 1,
     index_item   => 1,
+    output       => 1,
     no_css       => 1,
     no_generator => 1,
     no_index     => 1,
@@ -124,12 +128,23 @@ sub new {
 
 sub pod2html {
     my @args = @_;
-
     my $this = shift @args;
-    my $file = shift @args;
 
-    # Assume a non-option second arg is a file name
-    my $save = exists $OPTS{ $args[0] } ? undef : shift @args;
+    # The first argument is either the input file or an option,
+    # In the latter case, input must be coming from STDIN
+    my $pod = shift @args;
+    if ( exists $OPTS{$pod} ) {
+
+        # Oops, its an arg;
+        unshift @args, $pod;
+        $pod = q{-};
+    }
+
+    # If the following assignment is to work, we must have pairs in @args
+    if ( @args & 1 ) {
+        carp q{All options must be paired with values};
+        exit 1;
+    }
     my %args = @args;
 
     # Check options for validity
@@ -139,13 +154,8 @@ sub pod2html {
         }
     }
 
-    # No /x please
-    # \r\n is said to be not portable
-    if ( defined $save && $save =~ m{\cJ\cM}ms ) {
-
-        # Is this a M$ way of saying "nothing there"?
-        $save = undef;
-    }
+    my $save;
+    if ( exists $args{output} ) { $save = $args{output}; }
 
    # Personal pecularity: I hate double negatives, and perlcritic hates unless
     my ( $do_css, $do_generator, $do_index, $do_content );
@@ -182,15 +192,17 @@ sub pod2html {
     $parser->{POD_HTMLEASY}->{HTML} = \@output;
 
     my $title = $args{title};
-    if ( ref $file eq q{GLOB} ) {    # $file is an open file handle
+    if ( ref $pod eq q{GLOB} ) {    # $pod is an open file handle
         if ( not defined $title ) { $title = q{<DATA>}; }
     }
     else {
-        if ( !-e $file ) {
-            carp qq{No file $file};
-            return;
+        if ( ( !-e $pod ) && ( $pod ne q{-} ) ) {
+            carp qq{No file $pod};
+            exit 1;
         }
-        if ( not defined $title ) { $title = defined $save ? $save : $file; }
+        if ( not defined $title ) {
+            $title = defined $save ? $save : $pod eq q{-} ? q{STDIN} : $pod;
+        }
     }
 
     # Build the header to the HTML file
@@ -199,7 +211,7 @@ sub pod2html {
         push @html, head();
 
         if ( defined $do_generator ) {
-            push @html, gen( $VERSION, $Pod::Parser::VERSION );
+            push @html, gen( $VER, $Pod::Parser::VERSION );
         }
 
         push @html, title($title);
@@ -232,7 +244,7 @@ sub pod2html {
     delete $this->{VERSION};
     $this->{INFO_COUNT} = 0;
 
-    $parser->parse_from_file($file);
+    $parser->parse_from_file($pod);
 
     # If there's a head1 NAME, we've picked this up during processing
     # BUT, let the caller force override of NAME content
@@ -259,6 +271,9 @@ sub pod2html {
         open my $out, q{>}, $save or carp qq{Unable to open $save - $!};
         print {$out} @html or carp qq{Could not write to $out};
         close $out or carp qq{Could not close $out};
+    }
+    else {
+        if ( $pod eq q{-} ) { print @html or carp q{Could not print}; }
     }
 
     return wantarray ? @html : join EMPTY, @html;
@@ -421,12 +436,18 @@ sub evt_on_head4 {
 
 sub evt_on_begin {
     my ( $this, $txt ) = @_;
-    $this->{IN_BEGIN} = 1;
+
+    # We don't do any processing for =begin/=end other than ignore
+    # However, without a command, the construct is illegal
+    # Embedded =head, etc are also illegal, but we don't check
+    if ( length $txt == 0 ) { $this->{IN_BEGIN} = 1; }
     return EMPTY;
 }
 
 sub evt_on_end {
     my ( $this, $txt ) = @_;
+
+    # Ignore any commands
     delete $this->{IN_BEGIN};
     return EMPTY;
 }
@@ -653,7 +674,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 1.0.0.
+This documentation refers to Pod::HtmlEasy version 1.1.0.
 
 =head1 DESCRIPTION
 
@@ -679,12 +700,30 @@ list, according to context.
 The POD file (file path) or FILEHANDLE (GLOB, opened).
 The special file handle, DATA is, of course, supported.
 
-=item HTML_FILE I<(optional)>
+If the POD file is "-", or is omitted altogether, input from STDIN is expected, and HTML is written
+to STDOUT, unless an output file name has been given.
 
-The output HTML file path. If you don't need this, just leave it out.
-In other words, no "undef" (or something similar) is required.
+This command shows how to convert POD to HTML on the command line:
+
+ C<perl -MPod::HtmlEasy -e'Pod::HtmlEasy->new->pod2html(title,"test.html")' < test.pod > test.html>
+
+or
+
+ C<perl -MPod::HtmlEasy -e'Pod::HtmlEasy->new->pod2html("-",title,"test.html")' < test.pod > test.html>
+
+The "title,test" shows how to set parameters to pod2html in this context.
+Note that there is no "-" preceding the title; if you use one, Perl will complain about
+an odd number of values in an hash assignment.
+
+=item HTML_FILE
+
+The default is to use the POD_FILE parameter, replacing the extension with "html"
+in the current directory. If you want to name the output file differently, use the I<-output>
+option. B<Note that this is an incompatible change from previous versions. Sorry 'bout that.>
 
 =item %OPTIONS I<(optional)>
+
+Note that B<all> options have values. Omit the value and you'll get dumped.
 
 =over
 
@@ -757,6 +796,10 @@ If set, the meta GENERATOR tag won't be added.
 
 If set generate only the HTML content. This I<implies> no_generator and no_css,
 produces no <body> or <title>, and no DOCTYPE as well, so its really not very good HTML.
+
+=item output
+
+The file (and path, if desired) to be used to write the outptut HTML.
 
 =item parserwarn
 
@@ -1003,6 +1046,10 @@ I<If you want to do your own CSS, use this as base.>
 
 =over
 
+=item All options must be paired with values
+
+Your argument list (excluding the .pod file if specified) has an odd number of items.
+
 =item option I<key> is not supported
 
 You've used (mis-spelled?) an unrecognized option.
@@ -1017,7 +1064,7 @@ The various pm_ functions are referenced through the module.
 
 The maintainer would appreciate hearing about
 any messages I<other> than those that result from
-the C<use warnings> specified for each module. .
+the C<use warnings> specified for each module.
 
 HtmlEasy uses Pod::Parser, which may produce error messages concerning malformed
 HTML.
@@ -1026,7 +1073,7 @@ HTML.
 
 =head1 SEE ALSO
 
-L<Pod::Parser> L<perlpod>.
+L<Pod::Parser> L<perlpod>, L<perlpodspec>.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
@@ -1034,7 +1081,9 @@ Neither is relevant.
 
 =head1 INCOMPATIBILITIES
 
-None are known.
+As of version 1.1, the use of an optional output file as the second parameter,
+has been replaced with an explicit
+I<output> option.
 
 =head1 BUGS AND LIMITATIONS
 
@@ -1051,6 +1100,8 @@ and common_entities options and for tests. [These options have been removed. As 
 browsers don't need all that encoding. See L<CHARACTER SET> above.]. 
 
 Thanks to ITO Nobuaki for the patches for [31784].
+
+Thanks to David Whitcomb for pointing out an error in HTML generation.
 
 =head1 MAINTENANCE
  

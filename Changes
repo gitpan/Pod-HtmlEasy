@@ -1,6 +1,30 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
-1.000   2008-02-14
+1.0100   2008-05-31
+         - Release to CPAN. This is the last release to say "use 5.006002".
+           Subsequent releases will support 5.10 and subsequent. If anyone
+           has a serious problem with this, email the Maintainer.
+
+1.0005   2008-05-13
+         - Fix errors in =begin/=end processing.
+         - Add "output" option; optional second arg support removed
+
+1.0004  2008-04-27
+         - Silently ignore =begin or =end without command
+
+1.0003  2008-04-14
+         - Support absent file parameter to imply STDIN
+
+1.0002  2008-04-08
+         - Support "-" as file parameter, meaning read from STDIN
+         - Related changes to test suite
+         - Correct text returned by Data::podon
+         - Replace "touch" in test options.t with explicit create; n/a in Windoze
+
+1.0001  2008-02-15
+         - Use Exporter::Easy to provide a usage that satisfies perl 5.6.2
+
+1.0000  2008-02-14
          - Many changes, but here are some of them
          - Cleaned up default css. It just defines what's needed.
          - Rewrote index/toc generation; badly-managed tree replaced by simple

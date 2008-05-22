@@ -309,6 +309,44 @@ run(q{Empty L<>: error message is normal},
     undef,
 );
 
+#--------------------------- test 16
+
+run ( 
+        q{URL in parens, trailing ')'},
+        [
+            q{Here it (http://www.bipm.fr/enus/3_SI/si-prefixes.html) is},
+        ],
+        # The paren should precede 'is' rather than being associated with 'html',
+        # However fixing that in Parser.pm causes more severe problems.
+        [   q{<p>Here it (<a href='http://www.bipm.fr/enus/3_SI/si-prefixes.html)' } 
+            . q{target='_blank'>www.bipm.fr</a> is</p>},
+        ],
+        [
+        ],
+        {   no_css       => 1,
+            index_item   => 1,
+            no_generator => 1,
+        },
+    );
+
+#--------------------------- test 17
+
+run ( 
+        q{=begin/=end with no cmd},
+        [
+            q{=begin twas brillig},
+            q{This is foobar},
+            q{=end twas brillig},
+            q{This is barfoo},
+        ],
+        [
+            q{<p>This is foobar</p>},
+            q{<p>This is barfoo</p>},
+        ],
+        [
+        ],
+    );
+
 __END__
 
 =cut
@@ -320,7 +358,7 @@ use Run qw( run );
 use Pod::HtmlEasy::Data qw( NL );
 $ENV{DUMPHTML} = 1;
 
-# 16 lines from this point
+# 19 lines from this point
 
 #--------------------------- test 13
 
@@ -329,10 +367,12 @@ run (
         [
             q{},
         ],
-        [ or undef,
+        [
         ],
-        [ or undef,
+        undef,
+        [
         ],
+        undef,
         {
         },
     );

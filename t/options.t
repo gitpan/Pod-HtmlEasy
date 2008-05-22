@@ -24,7 +24,8 @@ use warnings;
 use lib qw(./t);
 use Run qw(run );
 use Pod::HtmlEasy::Data qw(NL body);
-use version; our $VERSION = qv('1.0'); # Also appears in "=head1 VERSION" in the POD below
+use File::Slurp;
+use version; our $VERSION = qv('1.0.1'); 
 
 #--------------------------- test 4
 
@@ -199,7 +200,7 @@ run(q{Testing TOP literal option},
 #--------------------------- test 16
 
 my $top_file = q{top.jpg};
-system qq{touch $top_file};
+write_file( $top_file, '' );
 run(q{Testing TOP file option},
     [ q{=head1 NAME Testing TOP file option}, ],
     [         q{<h1><a href='#_top'} 
@@ -292,3 +293,20 @@ run(q{User formatting command},
         no_generator => 1,
     }
 );
+
+#--------------------------- test 20
+
+run(q{STDIN => STDOUT},
+
+    # Null pod file => =pod/=cut
+    [],
+    [],
+    [],
+    {   stdio        => 1,
+        title        => q{STDINtoSTDOUT},
+        no_css       => 1,
+        no_index     => 1,
+        no_generator => 1,
+    },
+);
+

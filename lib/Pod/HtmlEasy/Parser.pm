@@ -4,7 +4,7 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     11/01/2004
-## Updated:	    2008-02-14
+## Updated:	    2008-05-31
 ## Copyright:   (c) 2004 Graciliano M. P. (c) 2007, 2008 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
@@ -29,7 +29,7 @@ use Switch qw{ Perl6 };
 use strict;
 use warnings;
 
-use version; our $VERSION = qv("1.0.0");
+use version; our $VERSION = qv("1.0.1");
 
 ########
 # VARS #
@@ -165,8 +165,14 @@ sub _add_uri_href {
             ${$txt_ref} =~ s{$esc}{$new}gmx;
         }
 
-        # target='_blank' causes load to a new window or tab
-        # See HTML 4.01 spec, section 6.16 Frame target names
+   # target='_blank' causes load to a new window or tab
+   # See HTML 4.01 spec, section 6.16 Frame target names
+   # Doing this because URI RE grabs non-word trailing characters
+   #       ${$txt_ref} =~ m{$RE{URI}{HTTP}{-keep}{-scheme=>'https?'}}mx;
+   #       my $uri = $1;
+   #       my $host = $3;
+   #       $uri =~ s{[^/\w]+\z}{}mx;
+   #       ${$txt_ref} =~ s{$uri}{<a href='$uri' target='_blank'>$host</a>}mx;
         ${$txt_ref}
             =~ s{$RE{URI}{HTTP}{-keep}{-scheme=>'https?'}}{<a href='$1' target='_blank'>$3</a>}gsmx;
 
@@ -299,7 +305,7 @@ sub command {
 
 ############
 # VERBATIM #
-############$parser->{POD_HTMLEASY}
+############
 
 # Overrides verbatim() provided by base class in Pod::Parser
 sub verbatim {

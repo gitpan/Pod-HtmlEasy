@@ -21,7 +21,7 @@ use strict;
 use warnings;
 
 use Test::More tests => 9;
-use version; our $VERSION = qv('1.0'); # Also appears in "=head1 VERSION" in the POD below
+use version; our $VERSION = qv('1.0');
 
 BEGIN {
     use_ok(q{Pod::HtmlEasy});
