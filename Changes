@@ -1,6 +1,9 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
-1.0100   2008-05-31
+1.0101   2008-05-23
+         - Add IPC::Run to Makefile.PL
+
+1.0100   2008-05-21
          - Release to CPAN. This is the last release to say "use 5.006002".
            Subsequent releases will support 5.10 and subsequent. If anyone
            has a serious problem with this, email the Maintainer.

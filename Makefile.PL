@@ -12,6 +12,7 @@ WriteMakefile(
                         'English'        => 0,
                         'Exporter::Easy' => 0.16,
                         'File::Slurp'    => 9999.13,
+                        'IPC::Run'       => 0.80,
                         'Pod::Escapes'   => 1.04,
                         'Pod::Parser'    => 1.03,
                         'Pod::ParseLink' => 1.06,
