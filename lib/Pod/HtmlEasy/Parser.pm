@@ -29,7 +29,7 @@ use Switch qw{ Perl6 };
 use strict;
 use warnings;
 
-use version; our $VERSION = qv("1.0.1");
+use version; our $VERSION = qv('1.0.1');
 
 ########
 # VARS #

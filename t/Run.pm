@@ -88,7 +88,7 @@ sub run {
 
         my ($in, $out, $err);
         # Execute this
-        my @cmd = qw{/usr/bin/perl -Ilib -MPod::HtmlEasy -e};
+        my @cmd = ($EXECUTABLE_NAME, qw{-Ilib -MPod::HtmlEasy -e});
         # Note: no "'"!
         # To test the "-" file convention, add '"-",' after the left paren
         my $cmd = q{Pod::HtmlEasy->new->pod2html(};

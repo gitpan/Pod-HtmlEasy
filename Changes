@@ -1,5 +1,9 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+1.0102   2008-05-28
+         - Change literal /usr/bin/perl to $EXECUTABLE_NAME to overcome
+           seemingly random CPAN test failures.
+
 1.0101   2008-05-23
          - Add IPC::Run to Makefile.PL
 

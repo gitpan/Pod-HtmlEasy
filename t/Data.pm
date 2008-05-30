@@ -26,7 +26,7 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv("1.0.2"); # Should be in sync with HtmlEasy::Data
+use version; our $VERSION = qv('1.0.2'); # Should be in sync with HtmlEasy::Data
 
 sub EMPTY { return q{}; }
 sub NL    { return $INPUT_RECORD_SEPARATOR; }

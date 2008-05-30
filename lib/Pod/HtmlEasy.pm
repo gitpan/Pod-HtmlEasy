@@ -26,10 +26,10 @@ use Readonly;
 use Regexp::Common qw{ whitespace };
 
 use version;
-our $VER = qv("1.1.1");    # Also appears in "=head1 VERSION" in the POD below
+our $VER = qv('1.1.2');    # Also appears in "=head1 VERSION" in the POD below
 
 # Why this? CPAN (a/o 1/1/2008) does not grok qv.
-our $VERSION = 1.01.01;
+our $VERSION = '1.1.2';
 
 ########
 # VARS #
