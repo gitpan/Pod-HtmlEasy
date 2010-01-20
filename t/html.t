@@ -10,9 +10,10 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.0
+#      VERSION:  1.0.2
 #      CREATED:  10/28/07 09:56:16 PDT
-#     REVISION:  ---
+#     REVISION:  Wed Jan 20 05:23:16 PST 2010
+#    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #===============================================================================
 
 use 5.006002;
@@ -23,7 +24,7 @@ use warnings;
 use lib qw(./t);
 use Run qw( run html_file );
 use Pod::HtmlEasy::Data qw(NL);
-use version; our $VERSION = qv('1.0');
+use version; our $VERSION = qv('1.0.2');
 
 #--------------------------- test 4
 
@@ -39,17 +40,17 @@ run(q{head1},
         q{=head1 E<lt>},
         q{This is the content of a paragraph with less-than as title, ie., E<lt>},
     ],
-    [   q{<a name='TestingPOD'></a><h1>Testing POD</h1>},
+    [   q{<a name='Testing POD'></a><h1>Testing POD</h1>},
         q{<p>`twas brillig and the slythe toes} 
             . NL
             . q{did gyre and gimbal in the wave</p>},
-        qq{<a name='NAME$html_file'></a><h1>NAME $html_file</h1>},
+        qq{<a name='NAME $html_file'></a><h1>NAME $html_file</h1>},
         qq{<p>Content of NAME: note the file is called $html_file</p>},
         q{<a name='&lt;'></a><h1>&lt;</h1>},
         q{<p>This is the content of a paragraph with less-than as title, ie., &lt;</p>},
     ],
-    [   q{<li><a href='#TestingPOD'>Testing POD</a></li>},
-        qq{<li><a href='#NAME$html_file'>NAME $html_file</a></li>},
+    [   q{<li><a href='#Testing POD'>Testing POD</a></li>},
+        qq{<li><a href='#NAME $html_file'>NAME $html_file</a></li>},
         q{<li><a href='#&lt;'>&lt;</a></li>},
     ],
 );
@@ -68,20 +69,20 @@ run(q{head2},
             . NL
             . q{This is head 2, so no title effect},
     ],
-    [   q{<a name='Testinghead2'></a><h2>Testing head2</h2>},
+    [   q{<a name='Testing head2'></a><h2>Testing head2</h2>},
         q{<p>`twas brillig and the slythe toes} 
             . NL
             . q{did gyre and gimbal in the wave</p>},
-        q{<a name='NAMEfoobar'></a><h2>NAME <i>foobar</i></h2>},
+        q{<a name='NAME foobar'></a><h2>NAME <i>foobar</i></h2>},
         q{<p>Content of NAME with italicized content <i>foobar</i>} 
             . NL
-            . q{and code content <font face='Courier New'>this is foo bar!</font>}
+            . q{and code content <code>this is foo bar!</code>}
             . NL
             . q{This is head 2, so no title effect</p>},
     ],
     [   q{<ul>},
-        q{<li><a href='#Testinghead2'>Testing head2</a></li>},
-        q{<li><a href='#NAMEfoobar'>NAME <i>foobar</i></a></li>}, q{</ul>},
+        q{<li><a href='#Testing head2'>Testing head2</a></li>},
+        q{<li><a href='#NAME foobar'>NAME <i>foobar</i></a></li>}, q{</ul>},
     ],
 );
 
@@ -93,13 +94,13 @@ run(q{head3},
             . NL
             . q{did gyre and gimbal in the wave},
     ],
-    [   q{<a name='Testinghead3'></a><h3>Testing head3</h3>},
+    [   q{<a name='Testing head3'></a><h3>Testing head3</h3>},
         q{<p>`twas brillig and the slythe toes} 
             . NL
             . q{did gyre and gimbal in the wave</p>},
     ],
     [   q{<ul>}, q{<ul>},
-        q{<li><a href='#Testinghead3'>Testing head3</a></li>},
+        q{<li><a href='#Testing head3'>Testing head3</a></li>},
         q{</ul>}, q{</ul>},
     ],
 );
@@ -112,13 +113,13 @@ run(q{head4},
             . NL
             . q{did gyre and gimbal in the wave},
     ],
-    [   q{<a name='Testinghead4'></a><h4>Testing head4</h4>},
+    [   q{<a name='Testing head4'></a><h4>Testing head4</h4>},
         q{<p>`twas brillig and the slythe toes} 
             . NL
             . q{did gyre and gimbal in the wave</p>},
     ],
     [   q{<ul>}, q{<ul>}, q{<ul>},
-        q{<li><a href='#Testinghead4'>Testing head4</a></li>},
+        q{<li><a href='#Testing head4'>Testing head4</a></li>},
         q{</ul>}, q{</ul>}, q{</ul>},
     ],
 );
@@ -132,9 +133,11 @@ run(q{item},
         q{Starred},
         q{The title of this item is "Starred" because it's "=item *"},
         q{=item * Title on item line},
-        q{This item has a normal title and a asterisk, which is ignored}
+        q{This item has a normal title and a asterisk, which is ignored},
+        q{=item * C<< text => 'string', >> and C<< text_regex => qr/regex/, >>},
+        q{=item C<< <IFRAME SRC=...> >>},
     ],
-    [   q{<li><a name='Testingitemandverbatumtext'></a>}
+    [   q{<li><a name='Testing item and verbatum text'></a>}
             . q{Testing item and verbatum text</li>},
         q{<pre> This text is indened one space} 
             . NL
@@ -142,8 +145,13 @@ run(q{item},
         q{<li><a name='Starred'></a>Starred</li>},
         q{<p>The title of this item is &quot;Starred&quot; because }
             . q{it's &quot;=item *&quot;</p>},
-        q{<li><a name='Titleonitemline'></a>Title on item line</li>},
+        q{<li><a name='Title on item line'></a>Title on item line</li>},
         q{<p>This item has a normal title and a asterisk, which is ignored</p>},
+        q{<li><a name='text =&gt; 'string', and text_regex =&gt; qr/regex/,'></a>}
+            . q{<code>text =&gt; 'string',</code> and <code>}
+            . q{text_regex =&gt; qr/regex/,</code></li>},
+        q{<li><a name='&lt;IFRAME SRC=...&gt;'></a><code>}
+           . q{&lt;IFRAME SRC=...&gt;</code></li>},
     ],
 );
 
@@ -159,7 +167,7 @@ run(q{over and back},
         q{=back},
         q{=back},
     ],
-    [   q{<li><a name='over4'></a>over 4</li>},
+    [   q{<li><a name='over 4'></a>over 4</li>},
         q{<ul>},
         q{<p>Text that is indented 4 spaces</p>},
         q{<ul>},
@@ -175,7 +183,7 @@ run(q{over and back},
 run(q{ignored controls},
     [   q{=for}, q{=begin}, q{This text is ignored: begin/end group}, q{=end},
     ],
-    [    # It's no accident that there's nothing here
+    [    # It's not an accident that there's nothing here
     ],
 );
 
@@ -259,11 +267,11 @@ run(q{various L<>},
         q{<p><i>crontab(5)</i></p>},
         q{<p><i><a href='http://search.cpan.org/perldoc?perlport#Newlines'>Perlport's}
             . q{ section on NL's</a></i></p>},
-        q{<p><i><a href='http://search.cpan.org/perldoc?perlport#Newlines'>"Newlines" }
+        q{<p><i><a href='http://search.cpan.org/perldoc?perlport#Newlines'>&quot;Newlines&quot; }
             . q{in perlport</a></i></p>},
-        q{<p><i><a href='#ObjectAttributes'>"Object Attributes"</a></i></p>},
-        q{<p><i>"DESCRIPTION" in crontab(5)</i></p>},
-        q{<p><i><a href='#Section'>"Section"</a></i></p>},
+        q{<p><i><a href='#Object Attributes'>&quot;Object Attributes&quot;</a></i></p>},
+        q{<p><i>&quot;DESCRIPTION&quot; in crontab(5)</i></p>},
+        q{<p><i><a href='#Section'>&quot;Section&quot;</a></i></p>},
         q{<p>mail <a href='mailto:foo@foo.com'>foo@foo.com</a></p>},
         q{<p><b><a href='http://www.foo.com' target='_blank'>}
             . q{www.foo.com</a> (foo site).</b></p>},
@@ -272,17 +280,17 @@ run(q{various L<>},
         q{<p><i><a href='http://search.cpan.org/perldoc?Foo::Bar'>Foo::Bar</a></i></p>},
         q{<p><i><a href='http://search.cpan.org/perldoc?parselink'>parselink</a></i></p>},
         q{<p><i><a href='http://search.cpan.org/perldoc?Bar'>Foo</a></i></p>},
-        q{<p><i><a href='http://search.cpan.org/perldoc?Foo#Bar'>"Bar" }
+        q{<p><i><a href='http://search.cpan.org/perldoc?Foo#Bar'>&quot;Bar&quot; }
             . q{in Foo</a></i></p>},
-        q{<p><i><a href='http://search.cpan.org/perldoc?foo#baz boo'>"baz boo" in foo}
+        q{<p><i><a href='http://search.cpan.org/perldoc?foo#baz boo'>&quot;baz boo&quot; in foo}
             . q{</a></i></p>},
-        q{<p><i><a href='#bar'>"bar"</a></i></p>},
-        q{<p><i><a href='#bazboo'>"baz boo"</a></i></p>},
-        q{<p><i><a href='#bazboo'>"baz boo"</a></i></p>},
-        q{<p><i><a href='http://search.cpan.org/perldoc?foo bar#baz boo'>"baz boo" }
+        q{<p><i><a href='#bar'>&quot;bar&quot;</a></i></p>},
+        q{<p><i><a href='#baz boo'>&quot;baz boo&quot;</a></i></p>},
+        q{<p><i><a href='#baz boo'>&quot;baz boo&quot;</a></i></p>},
+        q{<p><i><a href='http://search.cpan.org/perldoc?foo bar#baz boo'>&quot;baz boo&quot; }
             . q{in foo bar</a></i></p>},
         q{<p><i><a href='http://search.cpan.org/perldoc?foobar'>foobar</a></i></p>},
-        q{<p><i><a href='http://search.cpan.org/perldoc?foo bar baz#boo'>"boo" }
+        q{<p><i><a href='http://search.cpan.org/perldoc?foo bar baz#boo'>&quot;boo&quot; }
             . q{in foo bar baz</a></i></p>},
         q{<p><i><a href='http://search.cpan.org/perldoc?name#section'>anchor</a></i></p>},
         q{<p><i><a href='http://search.cpan.org/perldoc?foo#bar'>Testing}
@@ -311,7 +319,7 @@ run(q{various coded <>},
     ],
     [   q{<p><b>BOLD</b></p>},
         q{<p><i>ITALIC</i></p>},
-        q{<p><font face='Courier New'>CODE</font></p>},
+        q{<p><code>CODE</code></p>},
         q{<p>&escaped;</p>},
         q{<p><b><i>file_name</i></b></p>},
         q{<p>Non-breaking space</p>},
@@ -345,9 +353,9 @@ run(q{Special cases of =head},
     ],
     [   q{<a name='NAME'></a><h1>NAME</h1>},
         q{<p>The Name of NAME</p>},
-        q{<a name='simpletest'></a><h1>simple test</h1>},
+        q{<a name='simple test'></a><h1>simple test</h1>},
         q{<p>simple test text</p>},
-        q{<a name='subtitle'></a><h2>sub title</h2>},
+        q{<a name='sub title'></a><h2>sub title</h2>},
         q{<p>sub title sub text</p>},
         q{<ul>},
         q{<li><a name='foo'></a>foo</li>},
@@ -358,14 +366,14 @@ run(q{Special cases of =head},
         q{<li><a name='end'></a>end</li>},
         q{<p>end text</p>},
         q{</ul>},
-        q{<a name='subtitle2'></a><h2>sub title 2</h2>},
+        q{<a name='sub title 2'></a><h2>sub title 2</h2>},
         q{<p>sub title 2 text</p>},
     ],
     [   q{<li><a href='#NAME'>NAME</a></li>},
-        q{<li><a href='#simpletest'>simple test</a></li>},
+        q{<li><a href='#simple test'>simple test</a></li>},
         q{<ul>},
-        q{<li><a href='#subtitle'>sub title</a></li>},
-        q{<li><a href='#subtitle2'>sub title 2</a></li>},
+        q{<li><a href='#sub title'>sub title</a></li>},
+        q{<li><a href='#sub title 2'>sub title 2</a></li>},
         q{</ul>},
     ],
     {   no_css       => 1,
@@ -406,66 +414,66 @@ run(q{Mixed non-regular =head},
         q{=head2 head2 #5},
         q{Testing head2 #5},
     ],
-    [   q{<a name='head1#1'></a><h1>head1 #1</h1>},
+    [   q{<a name='head1 #1'></a><h1>head1 #1</h1>},
         q{<p>Testing head1 #1</p>},
-        q{<a name='head2#1'></a><h2>head2 #1</h2>},
+        q{<a name='head2 #1'></a><h2>head2 #1</h2>},
         q{<p>Testing head2 #1</p>},
-        q{<a name='head1#2'></a><h1>head1 #2</h1>},
+        q{<a name='head1 #2'></a><h1>head1 #2</h1>},
         q{<p>Testing head1 #2</p>},
-        q{<a name='head2#2'></a><h2>head2 #2</h2>},
+        q{<a name='head2 #2'></a><h2>head2 #2</h2>},
         q{<p>Testing head2 #2</p>},
-        q{<a name='head3#1'></a><h3>head3 #1</h3>},
+        q{<a name='head3 #1'></a><h3>head3 #1</h3>},
         q{<p>Testing head3 #1</p>},
-        q{<a name='head4#1'></a><h4>head4 #1</h4>},
+        q{<a name='head4 #1'></a><h4>head4 #1</h4>},
         q{<p>Testing head4 #1</p>},
-        q{<a name='head1#3'></a><h1>head1 #3</h1>},
+        q{<a name='head1 #3'></a><h1>head1 #3</h1>},
         q{<p>Testing head1 #3</p>},
-        q{<a name='head3#2'></a><h3>head3 #2</h3>},
+        q{<a name='head3 #2'></a><h3>head3 #2</h3>},
         q{<p>Testing head3 #2</p>},
-        q{<a name='head4#2'></a><h4>head4 #2</h4>},
+        q{<a name='head4 #2'></a><h4>head4 #2</h4>},
         q{<p>Testing head4 #2</p>},
-        q{<a name='head2#3'></a><h2>head2 #3</h2>},
+        q{<a name='head2 #3'></a><h2>head2 #3</h2>},
         q{<p>Testing head2 #3</p>},
-        q{<a name='head1#4'></a><h1>head1 #4</h1>},
+        q{<a name='head1 #4'></a><h1>head1 #4</h1>},
         q{<p>Testing head1 #4</p>},
-        q{<a name='head2#4'></a><h2>head2 #4</h2>},
+        q{<a name='head2 #4'></a><h2>head2 #4</h2>},
         q{<p>Testing head2 #4</p>},
-        q{<a name='head1#5'></a><h1>head1 #5</h1>},
+        q{<a name='head1 #5'></a><h1>head1 #5</h1>},
         q{<p>Testing head1 #5</p>},
-        q{<a name='head2#5'></a><h2>head2 #5</h2>},
+        q{<a name='head2 #5'></a><h2>head2 #5</h2>},
         q{<p>Testing head2 #5</p>},
     ],
-    [   q{<li><a href='#head1#1'>head1 #1</a></li>},
+    [   q{<li><a href='#head1 #1'>head1 #1</a></li>},
         q{<ul>},
-        q{<li><a href='#head2#1'>head2 #1</a></li>},
+        q{<li><a href='#head2 #1'>head2 #1</a></li>},
         q{</ul>},
-        q{<li><a href='#head1#2'>head1 #2</a></li>},
+        q{<li><a href='#head1 #2'>head1 #2</a></li>},
         q{<ul>},
-        q{<li><a href='#head2#2'>head2 #2</a></li>},
+        q{<li><a href='#head2 #2'>head2 #2</a></li>},
         q{<ul>},
-        q{<li><a href='#head3#1'>head3 #1</a></li>},
+        q{<li><a href='#head3 #1'>head3 #1</a></li>},
         q{<ul>},
-        q{<li><a href='#head4#1'>head4 #1</a></li>},
-        q{</ul>},
-        q{</ul>},
-        q{</ul>},
-        q{<li><a href='#head1#3'>head1 #3</a></li>},
-        q{<ul>},
-        q{<ul>},
-        q{<li><a href='#head3#2'>head3 #2</a></li>},
-        q{<ul>},
-        q{<li><a href='#head4#2'>head4 #2</a></li>},
+        q{<li><a href='#head4 #1'>head4 #1</a></li>},
         q{</ul>},
         q{</ul>},
-        q{<li><a href='#head2#3'>head2 #3</a></li>},
         q{</ul>},
-        q{<li><a href='#head1#4'>head1 #4</a></li>},
+        q{<li><a href='#head1 #3'>head1 #3</a></li>},
         q{<ul>},
-        q{<li><a href='#head2#4'>head2 #4</a></li>},
+        q{<ul>},
+        q{<li><a href='#head3 #2'>head3 #2</a></li>},
+        q{<ul>},
+        q{<li><a href='#head4 #2'>head4 #2</a></li>},
         q{</ul>},
-        q{<li><a href='#head1#5'>head1 #5</a></li>},
+        q{</ul>},
+        q{<li><a href='#head2 #3'>head2 #3</a></li>},
+        q{</ul>},
+        q{<li><a href='#head1 #4'>head1 #4</a></li>},
         q{<ul>},
-        q{<li><a href='#head2#5'>head2 #5</a></li>},
+        q{<li><a href='#head2 #4'>head2 #4</a></li>},
+        q{</ul>},
+        q{<li><a href='#head1 #5'>head1 #5</a></li>},
+        q{<ul>},
+        q{<li><a href='#head2 #5'>head2 #5</a></li>},
         q{</ul>},
     ],
 );
@@ -485,7 +493,7 @@ run(q{Mixed =head and =item},
         q{=back},
         q{=head1 SCRIPT CATEGORIES},
     ],
-    [   q{<a name='CONFIGURATIONANDENVIRONMENT'></a>}
+    [   q{<a name='CONFIGURATION AND ENVIRONMENT'></a>}
             . q{<h1>CONFIGURATION AND ENVIRONMENT</h1>},
         q{<ul>},
         q{<li><a name='@addpods'></a>@addpods</li>},
@@ -493,13 +501,13 @@ run(q{Mixed =head and =item},
         q{</ul>},
         q{<a name='DIAGNOSTICS'></a><h1>DIAGNOSTICS</h1>},
         q{<ul>},
-        q{<li><a name='-verbose'></a><font face='Courier New'>-verbose</font></li>},
-        q{<li><a name='TagreferencesmorethanonePOD.'></a>}
+        q{<li><a name='-verbose'></a><code>-verbose</code></li>},
+        q{<li><a name='Tag references more than one POD.'></a>}
             . q{Tag references more than one POD.</li>},
         q{</ul>},
-        q{<a name='SCRIPTCATEGORIES'></a><h1>SCRIPT CATEGORIES</h1>},
+        q{<a name='SCRIPT CATEGORIES'></a><h1>SCRIPT CATEGORIES</h1>},
     ],
-    [   q{<li><a href='#CONFIGURATIONANDENVIRONMENT'>}
+    [   q{<li><a href='#CONFIGURATION AND ENVIRONMENT'>}
             . q{CONFIGURATION AND ENVIRONMENT</a></li>},
         q{<ul>},
         q{<li><a href='#@addpods'>@addpods</a></li>},
@@ -507,11 +515,11 @@ run(q{Mixed =head and =item},
         q{</ul>},
         q{<li><a href='#DIAGNOSTICS'>DIAGNOSTICS</a></li>},
         q{<ul>},
-        q{<li><a href='#-verbose'><font face='Courier New'>-verbose</font></a></li>},
-        q{<li><a href='#TagreferencesmorethanonePOD.'>}
+        q{<li><a href='#-verbose'><code>-verbose</code></a></li>},
+        q{<li><a href='#Tag references more than one POD.'>}
             . q{Tag references more than one POD.</a></li>},
         q{</ul>},
-        q{<li><a href='#SCRIPTCATEGORIES'>SCRIPT CATEGORIES</a></li>},
+        q{<li><a href='#SCRIPT CATEGORIES'>SCRIPT CATEGORIES</a></li>},
     ],
     {   no_css     => 1,
         index_item => 1,

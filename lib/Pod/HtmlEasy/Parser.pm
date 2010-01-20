@@ -4,14 +4,14 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     11/01/2004
-## Updated:	    2008-05-31
-## Copyright:   (c) 2004 Graciliano M. P. (c) 2007, 2008 Geoffrey Leach
+## Updated:	    2009-05-16
+## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2010 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
 #############################################################################
 
 package Pod::HtmlEasy::Parser;
-use 5.006002;
+use 5.006003;
 
 use base qw{ Pod::Parser };
 use Pod::Parser;
@@ -29,7 +29,7 @@ use Switch qw{ Perl6 };
 use strict;
 use warnings;
 
-use version; our $VERSION = qv('1.0.1');
+use version; our $VERSION = qv('1.0.5');
 
 ########
 # VARS #
@@ -52,8 +52,8 @@ Readonly::Scalar my $MAIL_RE => qr{
           \.       # literal '.'                        .   
           [\w\-]+  # word                               nonsense
           |        # or empty?
-         )        # end of non-grab
-         )        # end of grab
+         )         # end of non-grab
+         )         # end of grab
         }smx;    # [6062]
 
 # Treatment of embedded HTML-significant characters and embedded URIs.
@@ -125,7 +125,9 @@ sub _remove_nul_escapes {
 ####################
 
 sub _encode_entities {
-    my ( $parser, $txt_ref ) = @_;
+    my $txt_ref = shift;
+
+    if ( !( defined $txt_ref && length ${$txt_ref} ) ) { return; }
 
     foreach my $chr ( keys %html_entities ) {
 
@@ -141,14 +143,14 @@ sub _encode_entities {
 # _ADD_URI_HREF #
 #################
 
-# process embedded URIs that are not noted in l<...> bracketing
+# process embedded URIs that are not noted in L<...> bracketing
 # Note that the HTML-significant characters are escaped;
 # The escapes are removed by _encode_entities
 # Note that there's no presumption that there's a URI in the
 # text, so not matching is _not_ and error.
 
 sub _add_uri_href {
-    my ( $parser, $txt_ref ) = @_;
+    my ($txt_ref) = @_;
 
     if ( ${$txt_ref} =~ m{https?:}smx ) {
 
@@ -222,7 +224,7 @@ sub command {
     $expansion =~ s{$RE{ws}{crop}}{}gsmx;    # delete surrounding whitespace
 
     # Encoding puts in a NUL; we're finished with the text, so remove them
-    _encode_entities( $parser, \$expansion );
+    _encode_entities( \$expansion );
     _remove_nul_escapes( \$expansion );
 
     my $html;
@@ -270,7 +272,10 @@ sub command {
             }
 
             # This is for the folks who use =item to list URLs
-            _add_uri_href( $parser, \$expansion );
+            if ( $expansion !~ m{<a\shref=}smx ) {
+                # The URI's not already encoded (L<...> is already processed)
+                _add_uri_href( \$expansion );
+            }
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_ITEM}( $parser->{POD_HTMLEASY}, $expansion );
         }
@@ -324,18 +329,25 @@ sub _verbatim {
     my $expansion = $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER};
     $parser->{POD_HTMLEASY}->{VERBATIM_BUFFER} = EMPTY;
 
-    _encode_entities( $parser, \$expansion );
+    _encode_entities( \$expansion );
+
+    # If we had "=item *", we should now be looking at the text that will
+    # appear as the item. The "*" was passed over initially, so we need
+    # the text to index. Save the flag as ON_VERBATIM deletes IN_ITEM
+
+    my $add_index = $parser->{INDEX_ITEM} && $parser->{POD_HTMLEASY}{IN_ITEM};
 
     my $html = $parser->{POD_HTMLEASY}
         ->{ON_VERBATIM}( $parser->{POD_HTMLEASY}, $expansion );
 
     # Now look for any embedded URIs
-    _add_uri_href( $parser, \$html );
+    _add_uri_href( \$html );
 
     # And remove any NUL escapes
     _remove_nul_escapes( \$html );
 
     if ( $html ne EMPTY ) {
+        if ($add_index) { _add_index( $parser, $expansion, $LEVELL ); }
         push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
     }    # [6062]
 
@@ -361,18 +373,25 @@ sub textblock {
     $expansion =~ s{\s+$}{}gsmx;
 
     # Encode HTML-specific characters before adding any HTML (eg <p>)
-    _encode_entities( $parser, \$expansion );
+    _encode_entities( \$expansion );
+
+    # If we had "=item *", we should now be looking at the text that will
+    # appear as the item. The "*" was passed over initially, so we need
+    # the text to index. Save the flag as ON_TEXTBLOCK deletes IN_ITEM
+
+    my $add_index = $parser->{INDEX_ITEM} && $parser->{POD_HTMLEASY}{IN_ITEM};
 
     my $html = $parser->{POD_HTMLEASY}
         ->{ON_TEXTBLOCK}( $parser->{POD_HTMLEASY}, $expansion );
 
     # Now look for any embedded URIs
-    _add_uri_href( $parser, \$html );
+    _add_uri_href( \$html );
 
     # And remove any NUL escapes
     _remove_nul_escapes( \$html );
 
     if ( $html ne EMPTY ) {
+        if ($add_index) { _add_index( $parser, $expansion, $LEVELL ); }
         push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
     }
 
@@ -388,6 +407,11 @@ sub interior_sequence {
     my ( $parser, $seq_command, $seq_argument, $pod_seq ) = @_;
 
     my $ret;
+
+    # Encode HTML-specific characters before adding any HTML (eg <p>)
+    if ( $seq_command ne q{L} ) {
+        _encode_entities( \$seq_argument );
+    }
 
     given ($seq_command) {
         when q{B} {
@@ -417,10 +441,14 @@ sub interior_sequence {
                 _errors( $parser, q{Empty L<>} );
                 return EMPTY;
             }
-            $ret = $parser->{POD_HTMLEASY}->{ON_L}(
-                $parser->{POD_HTMLEASY},
-                Pod::ParseLink::parselink($seq_argument)
-            );
+            my @parsed = Pod::ParseLink::parselink($seq_argument);
+            foreach (@parsed) {
+                if ( defined $_ ) { _encode_entities( \$_ ); }
+            }
+
+            # Encoding handled in ON_L()
+            $ret = $parser->{POD_HTMLEASY}
+                ->{ON_L}( $parser->{POD_HTMLEASY}, @parsed );
         }
         when q{S} {
             $ret = $parser->{POD_HTMLEASY}
@@ -513,6 +541,20 @@ sub _add_index {
     # Don't index star items
     if ( $txt eq q{*} ) { return; }
 
+    if ( exists $parser->{INDEX_ITEM} ) {
+        my $max_len = $parser->{INDEX_LENGTH};
+        if ( length $txt > $max_len ) {
+            while ( substr( $txt, $max_len, 1 ) ne q{ } ) {
+                $max_len++;
+                last if $max_len >= length $txt;
+            }
+            if ( $max_len < length $txt ) {
+                $txt = substr( $txt, 0, $max_len ) . "...";
+            }
+        }
+    }
+
+    _remove_nul_escapes( \$txt );
     push @{ $parser->{POD_HTMLEASY}->{INDEX} }, [ $level, $txt ];
 
     return;

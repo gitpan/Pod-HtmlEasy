@@ -10,10 +10,10 @@
 #        NOTES:  --- The intent of this module is to localize some of the HTML
 #                    generation so as to make it accessible to the test suite.
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:   1.0.2
-#      CREATED:  10/17/07 15:14:33 LPDT
-#      UPDATED:  05/31/08
-#    COPYRIGHT:  (c) 2008 Geoffrey Leach
+#      VERSION:   1.0.3
+#      CREATED:  10/17/07 15:14:33 PDT
+#      UPDATED:  Wed Jan 20 05:28:34 PST 2010
+#    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #
 #===============================================================================
 
@@ -23,7 +23,7 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv('1.0.2');
+use version; our $VERSION = qv('1.0.3');
 
 use Exporter::Easy (
     OK => [
@@ -72,18 +72,24 @@ sub title {
 sub toc {
     my @index = @_;
     my @toc = ( q{<div class="toc">}, q{<ul>}, q{</ul>}, q{</div>} );
-    return @index ? ( @toc[ 0 .. 1 ], @index, @toc[ 2 .. 3 ] ) : @toc;
+    ## no critic (ProhibitMagicNumbers)
+    return @index
+        ? ( @toc[ 0 .. 1 ], @index, @toc[ 2 .. 3 ] )
+        : @toc;
+    ## no critic
 }
 
 # Create the toc tag.
 # First we remove <' to '>'. These are HTML encodings (<i> ... </i>, for example)
 # that have been introduced processing directives (I<...>, for example)
-# Spaces are removed to eliminate problems created by embedded tabs.
+# Spaces are reduced to one to eliminate problems created by embedded tabs.
+# HTTP prefix removed to avoid getting tag post-processed as an URL.
 
 sub toc_tag {
     my $txt = shift;
     $txt =~ s{<.+?>}{}mxg;
-    $txt =~ s{\s+}{}mxg;
+    $txt =~ s{\s+}{ }mxg;
+    $txt =~ s{https?://}{}mxg;
     return $txt;
 }
 
@@ -194,6 +200,8 @@ END_CSS
     my $NL = NL;
 
     # "x" modifier inappropriate here
+    # RE sees it as embedded whitespace
+    ## no critic (RequireExtendedFormatting)
     if ( defined $data && $data !~ m{$NL}sm ) {
 
         # No newlines in $css, so we assume that it is a file name

@@ -14,9 +14,10 @@
 #                    file and Pod::HtmlEasy::Data.pm deliver the same data.
 #                    The two modules should, of course, have the same version
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.0002
+#      VERSION:  1.0.4
 #      CREATED:  10/17/07 15:14:33 LPDT
-#    COPYRIGHT:  (c) 2008 Geoffrey Leach
+#     REVISION:  Wed Jan 20 05:23:16 PST 2010
+#    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #
 #===============================================================================
 
@@ -26,7 +27,13 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv('1.0.2'); # Should be in sync with HtmlEasy::Data
+
+use version; our $VERSION = qv('1.0.4'); # Should be in sync with HtmlEasy::Data
+use Exporter::Easy (
+    OK => [
+        qw( EMPTY NL body css gen head headend title toc top podon podoff toc_tag )
+    ],
+);
 
 sub EMPTY { return q{}; }
 sub NL    { return $INPUT_RECORD_SEPARATOR; }
@@ -68,18 +75,23 @@ sub title {
 sub toc {
     my @index = @_;
     my @toc = ( q{<div class="toc">}, q{<ul>}, q{</ul>}, q{</div>} );
+    ## no critic (ProhibitMagicNumbers)
     return @index ? ( @toc[ 0 .. 1 ], @index, @toc[ 2 .. 3 ] ) : @toc;
+    ## no critic
 }
 
 # Create the toc tag.
 # First we remove <' to '>'. These are HTML encodings (<i> ... </i>, for example)
 # that have been introduced processing directives (I<...>, for example)
-# Spaces are removed to eliminate problems created by embedded tabs.
+# Spaces are squeezed to one to eliminate problems created by embedded tabs.
+# Single space remains to avoid having foo @bar become foo@bar
+# HTTP prefix removed to avoid getting tag post-processed as an URL.
 
 sub toc_tag {
     my $txt = shift;
     $txt =~ s{<.+?>}{}mxg;
-    $txt =~ s{\s+}{}mxg;
+    $txt =~ s{\s+}{ }mxg;
+    $txt =~ s{https?://}{}mxg;
     return $txt;
 }
 
@@ -190,6 +202,7 @@ END_CSS
     my $NL = NL;
 
     # "x" modifier inappropriate here
+    ## no critic (RequireExtendedFormatting)
     if ( defined $data && $data !~ m{$NL}sm ) {
 
         # No newlines in $css, so we assume that it is a file name

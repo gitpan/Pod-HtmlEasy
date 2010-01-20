@@ -4,8 +4,8 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
-## Updated:	    2008-05-31
-## Copyright:   (c) 2004 Graciliano M. P. (c) 2007, 2008 Geoffrey Leach
+## Updated:	    2009-05-16
+## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2010 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
 #############################################################################
@@ -26,17 +26,18 @@ use Readonly;
 use Regexp::Common qw{ whitespace };
 
 use version;
-our $VER = qv('1.1.2');    # Also appears in "=head1 VERSION" in the POD below
+our $VER = qv('1.1.7');    # Also appears in "=head1 VERSION" in the POD below
 
 # Why this? CPAN (a/o 1/1/2008) does not grok qv.
-our $VERSION = '1.1.2';
+our $VERSION = '1.1.7';
 
 ########
 # VARS #
 ########
 
-Readonly::Scalar my $NUL            => NUL;
-Readonly::Scalar my $TITLE_TEXT_LOC => -2;
+Readonly::Scalar my $NUL                  => NUL;
+Readonly::Scalar my $TITLE_TEXT_LOC       => -2;
+Readonly::Scalar my $DEFAULT_INDEX_LENGTH => 60;
 
 # This keeps track of valid options
 Readonly::Hash my %OPTS => (
@@ -44,6 +45,7 @@ Readonly::Hash my %OPTS => (
     css          => 1,
     index        => 1,
     index_item   => 1,
+    index_length => 1,
     output       => 1,
     no_css       => 1,
     no_generator => 1,
@@ -126,7 +128,7 @@ sub new {
 # POD2HTML #
 ############
 
-sub pod2html {
+sub pod2html {    ## no critic (ProhibitExcessComplexity)
     my @args = @_;
     my $this = shift @args;
 
@@ -169,7 +171,10 @@ sub pod2html {
     # Pod::HtmlEasy::Parser does not implement new()
     my $parser = Pod::HtmlEasy::Parser->new();
 
-    $parser->errorsub( sub { Pod::HtmlEasy::Parser::_errors( $parser, @_ ); }
+    $parser->errorsub(
+        sub {    ## no critic (ProtectPrivateSubs)
+            Pod::HtmlEasy::Parser::_errors( $parser, @_ );
+        }
     );
 
  # Pod::Parser wiii complain about multiple blank lines in INDEX_ITEMthe input
@@ -185,7 +190,13 @@ sub pod2html {
     # Pod::Parser and $this to Pod::HtmlEasy
     $parser->{POD_HTMLEASY} = $this;
 
-    if ( exists $args{index_item} ) { $parser->{INDEX_ITEM} = 1; }
+    if ( exists $args{index_item} ) {
+        $parser->{INDEX_ITEM} = 1;
+        $parser->{INDEX_LENGTH}
+            = exists $args{index_length}
+            ? $args{index_length}
+            : $DEFAULT_INDEX_LENGTH;
+    }
 
     # This is where we accumulate the results of Pod::Parser
     my @output;
@@ -453,8 +464,8 @@ sub evt_on_end {
 }
 
 # See perlpodsec for details on interpreting the items
-sub evt_on_L {
-    my ( $htis, $text, $inferred, $name, $section, $type ) = @_;
+sub evt_on_L {    ## no critic (ProhibitManyArgs)
+    my ( $this, $text, $inferred, $name, $section, $type ) = @_;
 
     if ( $type eq q{pod} ) {
         $section = defined $section ? qq{#$section} : EMPTY;    # [6062]
@@ -499,7 +510,7 @@ sub evt_on_I {
 
 sub evt_on_C {
     my ( $this, $txt ) = @_;
-    return qq{<font face='Courier New'>$txt</font>};
+    return qq{<code>$txt</code>};
 }
 
 sub evt_on_E {
@@ -569,7 +580,7 @@ sub evt_on_over {
 sub evt_on_item {
     my ( $this, $txt ) = @_;
 
-    if ( $txt eq q{*} ) {
+    if ( ( length($txt) == 1 ) && ( $txt !~ m{\d}mx ) ) {
 
         # Use the content for the tag
         $this->{IN_ITEM} = 1;
@@ -674,7 +685,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 1.1.1.
+This documentation refers to Pod::HtmlEasy version 1.1.7.
 
 =head1 DESCRIPTION
 
@@ -775,10 +786,17 @@ the required HTML glue.
 
 =item index_item
 
-If set (1), =items will be added in the index.
+If set (1), =items will be added in the index. =item *, followed by a paragraph can produce some
+strange indexes. See index_length.
 
 If the =item line ("foo" in =item foo) is an URL (https?://...), whether or not its enclosed
 in LZ<>E<lt>E<gt>, the http?// is stripped, and a HTML link is created.
+
+=item index_length
+
+If set (some value) I<and> index_item is set, then the intex line will be restricted to the
+first space following this
+number of characters, followed by "..." if appropriate. Default 60 characters.
 
 =item no_css
 

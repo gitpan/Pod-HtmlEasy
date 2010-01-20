@@ -9,8 +9,9 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.0
+#      VERSION:  1.0.2
 #      CREATED:  12/20/07 13:29:02 PST
+#    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #===============================================================================
 
 package Run;
@@ -33,12 +34,10 @@ BEGIN {
         qw( EMPTY NL body css gen head headend title toc top podon podoff ) );
 }
 
-use Exporter::Easy (
-    OK => [ qw( run html_file ) ],
-);
+use Exporter::Easy ( OK => [qw( run html_file )], );
 
-my $pod_file  = q{./test.pod};
-my $html_file = q{./test.html};
+my $pod_file  = q{test.pod};
+my $html_file = q{test.html};
 my $htmleasy  = Pod::HtmlEasy->new;
 ok( defined $htmleasy, q{New HtmlEasy} );
 
@@ -52,7 +51,7 @@ my %default_opts = (
     no_generator => 1,
 );
 
-sub run {
+sub run {    ## no critic (ProhibitExcessComplexity)
     my ( $desc, $pod, $expect, $inx, $opts ) = @_;
 
     $test_no++;
@@ -82,38 +81,45 @@ sub run {
     }
     my @html;
     if ( exists $opts->{stdio} ) {
+
         # Generate code to pipe @pod to pod2html and retrieve outptut
         # Avoid complaint option stdio not suported
         delete $opts->{stdio};
 
-        my ($in, $out, $err);
+        my ( $in, $out, $err );
+
         # Execute this
-        my @cmd = ($EXECUTABLE_NAME, qw{-Ilib -MPod::HtmlEasy -e});
+        my @cmd = ( $EXECUTABLE_NAME, qw{-Ilib -MPod::HtmlEasy -e} );
+
         # Note: no "'"!
         # To test the "-" file convention, add '"-",' after the left paren
         my $cmd = q{Pod::HtmlEasy->new->pod2html(};
+
         # Stringify options, add to -e command
         foreach my $k ( keys %{$opts} ) {
             $cmd .= $k . q{,} . $opts->{$k} . q{,};
         }
         $cmd .= q{)};
+
         # Complete the command
         push @cmd, $cmd;
         my $harness = start \@cmd, \$in, \$out, \$err;
-        foreach my $p ( @pod ) {
+        foreach my $p (@pod) {
             $in .= $p;
             $harness->pump;
         }
         $harness->finish;
-        @html = map { "$_\n" } split qq{\n}, $out;
-        warn $err if $err ;
+        ## no critic (RequireExtendedFormatting RequireLineBoundaryMatching)
+        @html = map {qq{$_\n}} split m{\n}, $out;
+        carp $err if $err;
     }
     elsif ( exists $opts->{outfile} ) {
 
         # Outfile is for this;
         my $outfile = $opts->{outfile};
         delete $opts->{outfile};
-        @html = $htmleasy->pod2html( $pod_file, q{output}, $outfile, %{$opts} );
+        @html
+            = $htmleasy->pod2html( $pod_file, q{output}, $outfile, %{$opts} );
     }
     else {
         @html = $htmleasy->pod2html( $pod_file, %{$opts} );

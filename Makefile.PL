@@ -22,7 +22,12 @@ WriteMakefile(
                         'Test::More'     => 0.70,
                         'version'        => 0.7203,
                        } ,
-    'EXE_FILES'     => [ qw(script/podhtmleasy.pl) ],
+    'EXE_FILES'     => [ qw(
+                            scripts/podhtmleasy.pl
+                            scripts/debug.pl
+                            scripts/pod2indexed_html.pl
+                            scripts/podhtmleasy.sh
+                            ) ],
     ($] >= 5.005 ?
       ( ABSTRACT_FROM => 'lib/Pod/HtmlEasy.pm',
         AUTHOR        => 'Graciliano M. P. <gm@virtuasites.com.br>, Geoffrey Leach <gleach@cpan.org>'
