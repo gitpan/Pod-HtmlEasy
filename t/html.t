@@ -10,7 +10,7 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.0.2
+#      VERSION:  1.1.8
 #      CREATED:  10/28/07 09:56:16 PDT
 #     REVISION:  Wed Jan 20 05:23:16 PST 2010
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -24,7 +24,7 @@ use warnings;
 use lib qw(./t);
 use Run qw( run html_file );
 use Pod::HtmlEasy::Data qw(NL);
-use version; our $VERSION = qv('1.0.2');
+use version; our $VERSION = qv('1.1.8');
 
 #--------------------------- test 4
 
@@ -299,8 +299,8 @@ run(q{various L<>},
         q{<p><i><a href='http://search.cpan.org/perldoc?foo&sol;bar'>Nested }
             . q{<a href='http://www.perl.org/' target='_blank'>www.perl.org</a></a></i></p>},
         q{<p><i>ls(1)</i></p>},
-        q{<p>news:yld72axzc8.<a href='mailto:fsf@windlord.stanford.edu'>}
-            . q{fsf@windlord.stanford.edu</a></p>},
+        q{<p>news:<a href='mailto:yld72axzc8.fsf@windlord.stanford.edu'>}
+            . q{yld72axzc8.fsf@windlord.stanford.edu</a></p>},
     ]
 );
 

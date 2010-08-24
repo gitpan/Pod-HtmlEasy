@@ -18,30 +18,31 @@ use File::Slurp;
 use File::Spec;
 use File::Spec::Unix;
 use GDBM_File;
-use Getopt::Auto;
+use Getopt::Auto 1.9.2;    # Versions less than this not a good idea
 use HTML::EasyTags;
 use IO::File;
 use IO::Handle;
 use List::MoreUtils qw{any};
-use Pod::HtmlEasy (1.01);
+use Pod::HtmlEasy 1.1.8;
 use Pod::Usage;
 use Readonly;
 use Regexp::Common qw{ whitespace };
 use Storable qw( store retrieve );
+use Uniq;
 
-our $VERSION = qv("0.6.7"); # Also appears in "=head1 VERSION" in the POD below
+our $VERSION = '1.0';    # Also appears in "=head1 VERSION" in the POD below
 
 # Static configuration
-Readonly my $debug     => 0;
+Readonly my $DEBUG     => 0;
 Readonly my $DOT       => q{.};
 Readonly my $EMPTY     => q{};
 Readonly my $NL        => qq{\n};
 Readonly my $NUL       => qq{\0};
 Readonly my $FONTSIZE  => 5;
-Readonly my @suffixes  => qw{ \.pm \.pod \.pl };
-Readonly my $title     => q{Perl Documentation};
-Readonly my $user      => q{root\@localhost};
-Readonly my $css_addon => qq(dt { margin-top: 1em; });
+Readonly my @SUFFIXES  => qw{ \.pm \.pod \.pl };
+Readonly my $TITLE     => q{Perl Documentation};
+Readonly my $USER      => q{root\@localhost};
+Readonly my $CSS_ADDON => qq(dt { margin-top: 1em; });
 
 # Variables that may be set from the command line
 my $scratch;
@@ -49,18 +50,21 @@ my $verbose;
 my $outfile;
 
 # Longest first, otherwise alpha
-my @prefixes = reverse sort { length $a <=> length $b or $a cmp $b } @INC;
+my @prefixes
+    = reverse uniq sort { length $a <=> length $b or $a cmp $b } @INC;
 if ( $prefixes[-1] eq $DOT ) { pop @prefixes; }
 
-# Here we try to accomodate multiple paths, such as /usr/lib/perl5/5.10.0 and
+# Here we try to accommodate multiple paths, such as /usr/lib/perl5/5.10.0 and
 # /usr/local/lib/perl5/site_perl/5.10.0
 my @sources;
-foreach ( @prefixes ) { if ( -d $_ ) { push @sources, $_; } }
+foreach (@prefixes) {
+    if ( -d $_ ) { push @sources, $_; }
+}
 
 my $targetdir = q{/usr/local/doc/HTML/Perl};
 my @addpods   = qw{/usr/local/doc/POD};        # Adds on to @INC
 
-if ($debug) {
+if ($DEBUG) {
 
     # To debug in a smaller environment, use these.
     # Note that if you should use something like
@@ -74,8 +78,8 @@ if ($debug) {
 }
 
 # Make a compiled regex.
-Readonly my $prefixer => q{\A} . join( q{/|\A}, @prefixes, @addpods ) . q{/};
-Readonly my $prefixre => qr{$prefixer}mx;
+Readonly my $PREFIXER => q{\A} . join( q{/|\A}, @prefixes, @addpods ) . q{/};
+Readonly my $PREFIXRE => qr{$PREFIXER}msx;
 
 # Persistant hashes that track the state of PODs converted to HTML.
 # %html_track:
@@ -89,9 +93,9 @@ Readonly my $prefixre => qr{$prefixer}mx;
 #   key:   tag for the index (Foo::Bar)
 #   value: ARRAY of [ path to the .html file, last mod time of POD ]
 # See insert_latest() for a specific example.
-my ( %html_track,     %nopod_track,     %index_track );
+my ( %HTML_TRACK,     %nopod_track,     %index_track );
 my ( $html_track_ref, $nopod_track_ref, $index_track_ref )
-    = ( \%html_track, \%nopod_track, \%index_track );
+    = ( \%HTML_TRACK, \%nopod_track, \%index_track );
 
 # %pod_convert:
 #   key:   path to the POD file to convert
@@ -101,18 +105,18 @@ my %pod_convert;
 # Files accessed in the course of index generation
 
 # Index tracking and nopod tracking files
-Readonly my $html_track  => qq{$targetdir/.html_track};
-Readonly my $index_track => qq{$targetdir/.index_track};
-Readonly my $nopod_track => qq{$targetdir/.nopod_track};
+Readonly my $HTML_TRACK  => qq{$targetdir/.html_track};
+Readonly my $INDEX_TRACK => qq{$targetdir/.index_track};
+Readonly my $NOPOD_TRACK => qq{$targetdir/.nopod_track};
 
 # Default URL for referenced uninstalled PODs
 Readonly my $CPAN => q{search.cpan.org};
 
 # HTML index for converted PODs
-Readonly my $index_file => qq{$targetdir/index.html};
+Readonly my $INDEX_FILE => qq{$targetdir/index.html};
 
 # Stylesheet for generated HTML
-Readonly my $css_file => qq{$targetdir/.doc.css};
+Readonly my $CSS_FILE => qq{$targetdir/.doc.css};
 
 sub TRUE  { return 1 }
 sub FALSE { return 0 }
@@ -127,14 +131,14 @@ sub error_print {
     exit 1;
 }
 
-sub dumpdb {
+sub dumpdb {    ## no critic (ProhibitExcessComplexity)
 
     if ( defined $scratch ) {
         error_print(q{Can't combine -scratch and -dump!})
             or carp q{print fail};
     }
 
-    print qq{$html_track$NL} or carp q{print fail};
+    print qq{$HTML_TRACK$NL} or carp q{print fail};
     for ( sort keys %{$html_track_ref} ) {
         print qq{  $_ =>$NL    $html_track_ref->{$_}->[0]$NL    },
             scalar localtime $html_track_ref->{$_}->[1], $NL
@@ -142,7 +146,7 @@ sub dumpdb {
     }
 
     my @index_refs;
-    print qq{$NL$index_track$NL} or carp q{print fail};
+    print qq{$NL$INDEX_TRACK$NL} or carp q{print fail};
     for ( sort keys %{$index_track_ref} ) {
         print qq{  $_ =>$NL} or carp q{print fail};
         if ( int @{ $index_track_ref->{$_} } > 1 ) {
@@ -155,7 +159,7 @@ sub dumpdb {
         }
     }
 
-    print qq{$NL$NL$nopod_track$NL} or carp q{print fail};
+    print qq{$NL$NL$NOPOD_TRACK$NL} or carp q{print fail};
     for ( sort keys %{$nopod_track_ref} ) {
         print qq{  $_ =>$NL    }, scalar localtime $nopod_track_ref->{$_}, $NL
             or carp q{print fail};
@@ -187,29 +191,29 @@ sub do_retrieve {
     if ( defined $scratch ) {    # Hashes are not loaded.
         return;
     }
-    if ( !-e $html_track ) {     # Hash files are not found.
+    if ( !-e $HTML_TRACK ) {     # Hash files are not found.
         return;
     }
 
-    if_verbose(qq{Retrieving $html_track$NL});
-    $html_track_ref = retrieve($html_track)
-        or error_print(qq{Unable to retrieve $html_track - $!});
+    if_verbose(qq{Retrieving $HTML_TRACK$NL});
+    $html_track_ref = retrieve($HTML_TRACK)
+        or error_print(qq{Unable to retrieve $HTML_TRACK - $ERRNO});
 
-    if_verbose(qq{Retrieving $index_track$NL});
-    $index_track_ref = retrieve($index_track)
-        or error_print(qq{Unable to retrieve $index_track - $!});
+    if_verbose(qq{Retrieving $INDEX_TRACK$NL});
+    $index_track_ref = retrieve($INDEX_TRACK)
+        or error_print(qq{Unable to retrieve $INDEX_TRACK - $ERRNO});
 
-    if_verbose(qq{Retrieving $nopod_track$NL$NL});
-    $nopod_track_ref = retrieve($nopod_track)
-        or error_print(qq{Unable to retrieve $nopod_track - $!});
+    if_verbose(qq{Retrieving $NOPOD_TRACK$NL$NL});
+    $nopod_track_ref = retrieve($NOPOD_TRACK)
+        or error_print(qq{Unable to retrieve $NOPOD_TRACK - $ERRNO});
     return;
 }
 
 # Execute the Storable module's store() to save the persistent hashes.
 sub do_store {
-    store( $html_track_ref,  $html_track );
-    store( $index_track_ref, $index_track );
-    store( $nopod_track_ref, $nopod_track );
+    store( $html_track_ref,  $HTML_TRACK );
+    store( $index_track_ref, $INDEX_TRACK );
+    store( $nopod_track_ref, $NOPOD_TRACK );
     return;
 }
 
@@ -265,12 +269,12 @@ sub insert_latest {
 # Subroutines which replace the subs internal to pod2html
 # and associated global variables.
 
-# $HTML_file:
+# $html_file:
 #   the file currently being generated, and is used for
 #   links within the page.
-my $HTML_file;
+my $html_file;
 
-sub on_L {
+sub on_l {    ## no critic (ProhibitManyArgs)
     my ( $this, $text, $inferred, $name, $section, $type ) = @_;
 
     if ( $type eq q{pod} ) {
@@ -311,7 +315,7 @@ sub on_L {
     if ( $type eq q{man} ) {
 
  # $name probably looks like "foo(1)", and the () are interpreted as metachars
-        if ( $inferred !~ m{\Q$name\E}xm ) { $inferred .= qq{ in $name}; }
+        if ( $inferred !~ m{\Q$name\E}sxm ) { $inferred .= qq{ in $name}; }
         return qq{<i>$inferred</i>};
     }
 
@@ -328,19 +332,19 @@ sub on_L {
     return $EMPTY;
 }
 
-my $podhtml = Pod::HtmlEasy->new( on_L => \&on_L, );
+my $podhtml = Pod::HtmlEasy->new( on_l => \&on_l, );
 
 # This a "wanted" sub for File::Find.
 # It accepts files with extension .pod or with extension .pm or .pl and
 # which have a line that begins with "=\w+" and saves them in the
-# html_track hash. If they've been modified since last conversion,
+# HTML_TRACK hash. If they've been modified since last conversion,
 # or never converted, the file is stuffed into the pod_convert hash.
 # If a POD file is removed, it's entry will linger in the persistent files.
 
 sub list_pods {
 
     my $podfile = $File::Find::name;
-    my ( $name, $path, $suffix ) = fileparse( $podfile, @suffixes );
+    my ( $name, $path, $suffix ) = fileparse( $podfile, @SUFFIXES );
 
     if ( length $suffix == 0 ) {
         return;
@@ -369,8 +373,8 @@ sub list_pods {
     if ( defined $track ) {
 
         # We've converted this POD before.
-        my ( $htmlfile, $ftime ) = @{$track};
-        if ( -e $htmlfile and ( $ftime >= $podmtime ) ) {
+        my ( $this_htmlfile, $this_ftime ) = @{$track};
+        if ( -e $this_htmlfile and ( $this_ftime >= $podmtime ) ) {
 
             # The podfile was previously converted and it hasn't
             # been modified since, and the HTML version is still around.
@@ -386,7 +390,7 @@ sub list_pods {
 
         # Get the source and check
         # This is not foolproof.  But its cheap.
-        if ( not any {m{^=\w+}mx} ( read_file($podfile) ) ) {
+        if ( not any {m{^=\w+}msx} ( read_file($podfile) ) ) {
             if_verbose(qq{  no POD$NL});
             $nopod_track_ref->{$podfile} = $podmtime;
             return;
@@ -394,22 +398,23 @@ sub list_pods {
     }
 
     # We have a POD to convert. The time is last-modified of POD.
-    # %html_track has the state of the index database.
+    # %HTML_TRACK has the state of the index database.
     # %pod_convert has the PODs that are to be converted this run.
 
     my $newpath;
+
     # @sources is sorted longest first, so we strip as much as possible.
     # There's a possibility of multiple sources mapping to a single target.
-    foreach my $sourcedir ( @sources ) {
-        if ( $path =~ m{\A$sourcedir}mx ) {
+    foreach my $sourcedir (@sources) {
+        if ( $path =~ m{\A$sourcedir}msx ) {
             $newpath = $path;
-            $newpath =~ s{\A$sourcedir}{$targetdir}mx;
+            $newpath =~ s{\A$sourcedir}{$targetdir}msx;
             last;
         }
     }
 
     if ( not defined $newpath ) {
-        error_print( qq{Unable to strip prefix from $podfile} );
+        error_print(qq{Unable to strip prefix from $podfile});
     }
 
     # Construct a path for the HTML file.
@@ -423,26 +428,26 @@ sub list_pods {
 # Convert a POD file to HTML
 
 sub convert_pod {
-    my ( $local_file, $pod_file, $html_file ) = @_;
+    my ( $local_file, $from_pod_file, $to_html_file ) = @_;
 
     # Make an HTML file from the POD
-    if ( defined $html_file ) {
+    if ( defined $to_html_file ) {
 
-        # $html_file is global as its needed by on_L()
-        $HTML_file = $html_file;
-        my ( $name, $path ) = fileparse($HTML_file);
+        # $html_file is global as its needed by on_l()
+        $html_file = $to_html_file;
+        my ( $name, $path ) = fileparse($html_file);
         if ( !-d $path ) { mkpath($path); }
 
-        print qq{$pod_file =>$NL  $HTML_file$NL} or carp q{podrint};
+        print qq{$from_pod_file =>$NL  $html_file$NL} or carp q{podrint};
     }
 
-    my $pod_name = $pod_file;
-    my @pod2args = $pod_file;
-    if ( $pod_file eq q{-} ) {
-        $pod_name = defined $html_file ? $html_file : q{STDOUT};
+    my $pod_name = $from_pod_file;
+    my @pod2args = $from_pod_file;
+    if ( $from_pod_file eq q{-} ) {
+        $pod_name = defined $to_html_file ? $to_html_file : q{STDOUT};
         push @pod2args, $pod_name;
     }
-    push @pod2args, css => $local_file ? undef : $css_file;
+    push @pod2args, css => $local_file ? undef : $CSS_FILE;
     push @pod2args, index_item => 1;
     push @pod2args, top        => 'uArr';
 
@@ -454,7 +459,7 @@ sub convert_pod {
 
     # This should be near the top of the page
     foreach my $html_line (@html) {
-        $html_line =~ m{<body}mx and do {
+        $html_line =~ m{<body}msx and do {
             $html_line .= $heading;
             last;
         };
@@ -462,14 +467,15 @@ sub convert_pod {
 
     # And this should be near the end of the list.
     foreach my $html_line ( reverse @html ) {
-        $html_line =~ m{</body}mx and do {
+        $html_line =~ m{</body}msx and do {
             $html_line .= $heading;
             last;
         };
     }
 
     # The file has alread been written by pod2html, but that's OK
-    if ( defined $HTML_file ) { write_file( $HTML_file, \@html ); }
+    if ( defined $html_file ) { write_file( $html_file, \@html ); }
+
     return;
 }
 
@@ -486,7 +492,7 @@ sub convert_local {
             next;
         }
 
-        my ( $name, $path, $suffix ) = fileparse( $pod_file, @suffixes );
+        my ( $name, $path, $suffix ) = fileparse( $pod_file, @SUFFIXES );
         $outfile = qq{$name.html};
 
         convert_pod( TRUE, $pod_file, $outfile );
@@ -521,17 +527,17 @@ sub definition {
 
     # The first thing we need to do is to define the 0-level
     my $tag = $tags_ref->[0];
-    my ($section) = $tag->[0][0] =~ m{^(\w+)}xm;
-    if ( $section =~ m{^perl}mx ) { $section =~ q{perl}; }
+    my ($section) = $tag->[0][0] =~ m{^(\w+)}sxm;
+    if ( $section =~ m{^perl}msx ) { $section =~ q{perl}; }
     $index_fh->print( $html->dt($section) );
 
     $index_fh->print( $html->dd_start );
-    while ( my $tag = shift @{$tags_ref} ) {
-        my $index = $tag->[1];
+    while ( my $this_tag = shift @{$tags_ref} ) {
+        my $index = $this_tag->[1];
 
         # Two-step calc preserves single names (no '::")
         my $name = $index;
-        $name =~ s{${section}::}{}xm;
+        $name =~ s{${section}::}{}sxm;
         my $link = $index_track_ref->{$index}[0][0];
         $index_fh->print(
             $html->a(
@@ -552,27 +558,27 @@ Readonly my $NTAG => 3;
 
 sub get_first {
     my $tags_ref = shift;
-    my ($first) = ${$tags_ref}[0] =~ m{^(\w+)}xm;
+    my ($first) = ${$tags_ref}[0] =~ m{^(\w+)}sxm;
     my @first_tags;
 
   # The purpose of $first_re is to cause the Perl pages (perlops, perlre, etc.
   # to sort together
     my $first_re;
-    if   ( $first =~ m{^perl}xm ) { $first_re = qr{^perl}xm; }
-    else                          { $first_re = qr{^$first$}xm; }
+    if   ( $first =~ m{\Aperl}sxm ) { $first_re = qr{\Aperl}sxm; }
+    else                            { $first_re = qr{\A$first\z}sxm; }
     while ( my $tag = shift @{$tags_ref} ) {
-        my ($tagprefix) = $tag =~ m{^(\w+)}xm;
-        if ( $tagprefix !~ m{$first_re}xm ) {
+        my ($tagprefix) = $tag =~ m{^(\w+)}sxm;
+        if ( $tagprefix !~ m{$first_re}sxm ) {
             unshift @{$tags_ref}, $tag;
             return \@first_tags;
         }
-        push @first_tags, [ [ split /::/xm, $tag, $NTAG ], $tag ];
+        push @first_tags, [ [ split /::/sxm, $tag, $NTAG ], $tag ];
     }
     return \@first_tags;
 }
 
 sub key_sort {
-    if ( uc substr( $a, 0, 1 ) ne uc substr( $b, 0, 1 ) ) {
+    if ( uc( substr $a, 0, 1 ) ne uc( substr $b, 0, 1 ) ) {
         return uc $a cmp uc $b;
     }
     return $a cmp $b;
@@ -582,28 +588,28 @@ sub key_sort {
 # the HTML files were changed.
 sub build_index {
 
-    $index_fh = new IO::File( $index_file, '>' )
-        or error_print(qq{Can't open $index_file: $!});
+    $index_fh = IO::File->new( $INDEX_FILE, '>' )
+        or error_print(qq{Can't open $INDEX_FILE: $ERRNO});
     $html = HTML::EasyTags->new();
     $html->groups_by_default(1);
 
     # Do the HTML document header
     $index_fh->print(
         $html->start_html(
-            $title,
+            $TITLE,
             [   $html->link(
                     rel  => q{stylesheet},
-                    href => $css_file,
+                    href => $CSS_FILE,
                     type => q{text/css}
                 ),
                 $html->link(
                     rev  => q{made},
-                    href => qq{mailto:$user}
+                    href => qq{mailto:$USER}
                 ),
             ],
         ),
         $html->font_start( size => $FONTSIZE ),
-        $html->strong( $html->center($title) ),
+        $html->strong( $html->center($TITLE) ),
         $html->font_end,
         $html->hr,    # Horizontal rule
         $html->p,
@@ -626,7 +632,7 @@ sub build_index {
 # Here's where it all begins
 
 # Persistant hashes not updated.
-$SIG{INT} = sub { exit 1; };
+local $SIG{INT} = sub { exit 1; };
 
 # Print it now!
 *STDOUT->autoflush();
@@ -637,21 +643,20 @@ sub outfile {
 }
 
 sub help {
-    pod2usage( -verbose => 2 ); 
+    pod2usage( -verbose => 2 );
     exit 0;
 }
 
-our %options;
+# This is set (magically) by Getopt::Auto
+our %options;    ## no critic (ProhibitPackageVars)
 
-# See if we've been given an option that we don't recognize
-foreach my $opt ( keys %options ) {
-    if ( not Getopt::Auto::test_option($opt) ) {
-        pod2usage( -verbose => 1 ); 
-    }
+if ( exists $options{'--scratch'} ) {
+    $scratch = 1;
 }
 
-$scratch = 1 if exists $options{'scratch'};
-$verbose = 1 if exists $options{'verbose'};
+if ( exists $options{'--verbose'} ) {
+    $verbose = 1;
+}
 
 do_retrieve();
 
@@ -659,11 +664,11 @@ if ( exists $options{'dumpdb'} ) { dumpdb(); exit 0; }
 
 if (@ARGV) { convert_local(); exit 0; }
 
-# Put css_addon at the end of the css
+# Put CSS_ADDON at the end of the css
 # 'x' is inappropriate here
-my @css = split m{$NL}m, Pod::HtmlEasy::Data::css;
-push @css, splice @css, -1, 1, $css_addon;
-write_file( $css_file, join( qq{$NL}, @css ) . $NL );
+my @css = split m{$NL}sxm, Pod::HtmlEasy::Data::css;
+push @css, splice @css, -1, 1, $CSS_ADDON; ## no critic (ProhibitMagicNumbers)
+write_file( $CSS_FILE, join( qq{$NL}, @css ) . $NL );
 
 if ( not -d $targetdir ) {
     mkdir $targetdir
@@ -675,7 +680,7 @@ if ( not -w $targetdir ) {
 }
 
 # Generate a hash (in %pod_convert) of qualifying .pm, .pl and .pod files
-# and keep up-to-date the hash of the HTML file state (%html_track)
+# and keep up-to-date the hash of the HTML file state (%HTML_TRACK)
 
 if_verbose(qq{Indexing .pm, .pl and .pod$NL$NL});
 find( \&list_pods, @sources );
@@ -691,7 +696,7 @@ foreach my $podfile ( values %pod_convert ) {
     my $htmlfile = $html_track_ref->{$podfile};
 
     # "." marks the beginning of the suffix
-    my ($tag) = $podfile =~ m{$prefixre(.*)\.}mx;
+    my ($tag) = $podfile =~ m{$PREFIXRE(.*)\.}msx;
 
     if ( not defined $tag ) {
 
@@ -706,10 +711,10 @@ foreach my $podfile ( values %pod_convert ) {
 
     # PODs in the pod/ directory of the standard distribution are referred
     # to without the pod:: prefix, so let's just dump it.
-    $tag =~ s{^pod/}{}mx;
+    $tag =~ s{^pod/}{}msx;
 
     # Convert the POD path (Foo/Bar) to a POD name (Foo::Bar)
-    $tag =~ s{/}{::}mxg;
+    $tag =~ s{/}{::}msxg;
 
     if_verbose(qq{$podfile =>$NL  $htmlfile->[0]$NL});
 
@@ -735,13 +740,20 @@ __END__
 
 =pod
 
+=begin stopwords
+outfile
+html
+STDIN
+manpage
+=end stopwords
+
 =head1 NAME 
 
 pod2indexed_html - Convert POD files to HTML and create an index page
 
 =head1 VERSION
 
-This documentation refers to pod2indexed_html version 0.6.7
+This documentation refers to pod2indexed_html version 1.0
 
 =head1 SYNOPSIS
 
@@ -768,7 +780,7 @@ of the script to make sure that you like the choices.
 
 =over 4
 
-=item --dump     - Dump .html_track, .index_track and .nopod_track, then exit.
+=item --dump     - Dump F<.html_track>, F<.index_track> and F<.nopod_track>, then exit.
 
 This also provides a list of all links having the same tag.
 
@@ -830,7 +842,7 @@ L<File::Slurp>,
 L<File::Spec>,
 L<File::Spec::Unix>,
 L<GDBM_File>,
-L<Getopt::Long>,
+L<Getopt::Auto>,
 L<HTML::EasyTags>,
 L<IO::File>,
 L<IO::Handle>,
@@ -845,7 +857,7 @@ minor modifications.  Required modules willing, of course.
 
 =head1 CONFIGURATION AND ENVIRONMENT
 
-The persistent user environment, configured in the script.
+The persistent USER environment, configured in the script.
 
 =over
 
@@ -863,17 +875,17 @@ modules that are mentioned in a POD, but have not been installed locally.
 
 Defaults to the shortest path in @INC.  Usually, that's
 F</usr/lib/perl5>
-If there are multiple roots, we attempt to accomodate that.
+If there are multiple roots, we attempt to accommodate that.
 
 =item $targetdir
 
 Defaults to F</usr/local/doc/HTML/Perl>
 
-=item $user
+=item $USER
 
 Email address for the creator of the index page. Defaults to "root@localhost".
 
-=item $title
+=item $TITLE
 
 Defaults to "Perl Documentation"
 
@@ -898,7 +910,7 @@ would be pointed to by
 F<IPC::Run::Timer>.
 Obviously, this is not going to work very well. The situation is resolved by
 choosing the most recently modified POD file. To see what's going on, run with
--dump and look for the section titled "Multiple index references" at the end.
+-dump and look for the section TITLEd "Multiple index references" at the end.
 
 =item Unable to open F<file> - I<error>
 
@@ -984,11 +996,6 @@ Tracks those .pm files that were not found to have POD.
 The style sheet that's generated to go with the HTML.
 The source for this file is found in the script,
 at the end of the file.
-
-=item F</usr/local/doc/HTML/Perl/.up.png>
-
-The "back to the top" arrow glyph.
-The source for this file is found in the script.
 
 =back
 

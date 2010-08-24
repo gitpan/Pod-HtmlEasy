@@ -1,5 +1,19 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+1.0108   2010-06-13
+           Ooooh! A bugreport. Someone's actually using this stuff!
+           RT ticket 58274. User names with embedded '.' are not
+           parsed correctly. rather than improving the RE, I wanted to
+           use Regexp::Common::Email::Address. It's the perl way, 
+           be lazy. Alas, there's a bug there, so I fixed the local RE.
+           Shamefully, I discovered that the last item in 
+           test 12 of t/html.t included a dot-containing address,
+           which was parsed incorrectly.
+         2010-07-11
+           - Replaced ExtUtils::MakeMaker (deprecated) with Module::Build
+           - Added scripts/pod2indexed_html.pl to be installed. 
+             Other scripts are useful only for debugging use of the module. 
+
 1.0107   2009-11-05
            Changed generated HTML for C<> to use <code> instead of font change.
          2010-01-19
@@ -8,20 +22,20 @@ Revision history for Perl extension Pod::HtmlEasy.
            mailto: for foo@bar.
 
 1.0106   2009-06-09
-         =item L<foobar> caused confused output because the href was
-         converted twice.
+           =item L<foobar> caused confused output because the href was
+           converted twice.
 
 1.0105   2009-05-16
-         HTML in the index entry resulted in the inclusion of \c
-         =index * followed by a long paragraph resulted in a long index
-         entry if index_item was selected. Added index_length (default 60)
-         to permit the entry to be truncated.
+           HTML in the index entry resulted in the inclusion of \c
+           =index * followed by a long paragraph resulted in a long index
+           entry if index_item was selected. Added index_length (default 60)
+           to permit the entry to be truncated.
 
 1.0104   2008-09-01
-         - =item * followed by URL produced funny output.
+           =item * followed by URL produced funny output.
 
 1.0103   2008-06-04
-         - [36642] Perlpod states that hyperlinks can be in
+           [36642] Perlpod states that hyperlinks can be in
            the format of: L<text|name>. podhtmleasy.pl doesn't create
            <a href="name">text</a>, but rather <a href="name">name</a>.
            Resolved: user was using v0.9

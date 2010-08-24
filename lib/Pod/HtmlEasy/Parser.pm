@@ -4,7 +4,7 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     11/01/2004
-## Updated:	    2009-05-16
+## Updated:	    2010-06-13
 ## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2010 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
@@ -22,6 +22,9 @@ use Pod::HtmlEasy::Data qw(EMPTY NUL);
 use Carp;
 use English qw{ -no_match_vars };
 use Regexp::Common qw{ whitespace number URI };
+=if 0
+use Regexp::Common qw{ Email::Address };
+=cut
 use Regexp::Common::URI::RFC2396 qw { $escaped };
 use Pod::Escapes qw{ e2char };
 use Switch qw{ Perl6 };
@@ -29,7 +32,7 @@ use Switch qw{ Perl6 };
 use strict;
 use warnings;
 
-use version; our $VERSION = qv('1.0.5');
+use version; our $VERSION = qv('1.1.8');
 
 ########
 # VARS #
@@ -37,28 +40,32 @@ use version; our $VERSION = qv('1.0.5');
 
 Readonly::Scalar my $NUL => NUL;
 
+# RT 58274 [\w-]+ => [\w\.-]
+# Commented patterns temp test
 Readonly::Scalar my $MAIL_RE => qr{
          (         # grab all of this
-         [\w-]+    # some word chars with '-' included   foo
+         [\w\.-]+  # some word chars with '-' and '.'included  foo
          \0?       # possible NUL escape
-         \@        # literal '@'                         @
-         [\w\\-]+  # another word                        bar
+         \@        # literal '@'                               @
+         [\w\.-]+  # another word                              bar
          (?:       # non-grabbing pattern
-          \.       # literal '.'                        .
-          [\w\-\.]+# that word stuff                    stuff
-          \.       # another literal '.'                .
-          [\w\-]+  # another word                       and
+#         \.       # literal '.'                               .
+          [\w\.-]+ # that word stuff                           stuff
+#         \.       # another literal '.'                       .
+          [\w\.-]+ # another word                              and
           |        # or
-          \.       # literal '.'                        .   
-          [\w\-]+  # word                               nonsense
+#         \.       # literal '.'                               .   
+          [\w\.-]+ # word                                      nonsense
           |        # or empty?
          )         # end of non-grab
          )         # end of grab
         }smx;    # [6062]
 
+
+
 # Treatment of embedded HTML-significant characters and embedded URIs.
 
-# There are some characters (%html_entities below) which may in some
+# There are some characters (%HTML_ENTITIES below) which may in some
 # circumstances be interpreted by a browser, and you probably don't want that
 # Consequently, they are replaced by names defined by the W3C UNICODE spec,
 # http://www.w3.org/TR/MathML2/bycodes.html, bracketed by '&' and ';'
@@ -86,15 +93,15 @@ Readonly::Scalar my $MAIL_RE => qr{
 # the generated URI, but after the first character. These NULs are removed
 # by _remove _nul_escapes()
 
-Readonly::Hash my %html_entities => (
+Readonly::Hash my %HTML_ENTITIES => (
     q{&} => q{amp},
     q{>} => q{gt},
     q{<} => q{lt},
     q{"} => q{quot},
 );
 
-my $HTML_ENTITIES_RE = join q{|}, keys %html_entities;
-$HTML_ENTITIES_RE = qr{$HTML_ENTITIES_RE}mx;
+my $HTML_ENTITIES_RE = join q{|}, keys %HTML_ENTITIES;
+$HTML_ENTITIES_RE = qr{$HTML_ENTITIES_RE}msx;
 
 #################
 # _NUL_ESCAPE   #
@@ -129,11 +136,11 @@ sub _encode_entities {
 
     if ( !( defined $txt_ref && length ${$txt_ref} ) ) { return; }
 
-    foreach my $chr ( keys %html_entities ) {
+    foreach my $chr ( keys %HTML_ENTITIES ) {
 
         # $chr gets a lookbehind to avoid converting flagged from E<...>
         my $re = qq{(?<!$NUL)$chr};
-        ${$txt_ref} =~ s{$re}{$NUL&$html_entities{$chr};}gsmx;
+        ${$txt_ref} =~ s{$re}{$NUL&$HTML_ENTITIES{$chr};}gsmx;
     }
 
     return;
@@ -159,12 +166,12 @@ sub _add_uri_href {
 # per the RFC. However, the Spamassassin folks use it in the host.
 # $escaped is defined by Regexp::Common::URI::RFC2396, and matches %xx
 # This is done first because if needed, the host part won't be parsed correctly
-        while ( ${$txt_ref} =~ m{($escaped)}mx ) {
+        while ( ${$txt_ref} =~ m{($escaped)}msx ) {
             my $esc = $1;
             my $new = $1;
-            $new =~ s{%}{0x}mx;
+            $new =~ s{%}{0x}msx;
             $new = e2char($new);
-            ${$txt_ref} =~ s{$esc}{$new}gmx;
+            ${$txt_ref} =~ s{$esc}{$new}gmsx;
         }
 
    # target='_blank' causes load to a new window or tab
@@ -191,6 +198,18 @@ sub _add_uri_href {
         return;
     }
 
+=if 0
+    # RT 58274
+    my @addrs = ${$txt_ref} =~ m{($RE{Email}{Address})}smxg;
+    if (@addrs) {
+        ${$txt_ref} =~ s{mailto://}{}gsmx;
+        foreach my $addr (@addrs) {
+            $addr       =~ s{^/*}{}smx;
+            $addr       =~ s{\s+}{}gsmx;
+            ${$txt_ref} =~ s{$addr}{<a href='mailto:$addr'>$addr</a>}gsmx;
+        }
+    }
+=cut
     if ( ${$txt_ref} =~ m{$MAIL_RE}smx ) {
         ${$txt_ref} =~ s{mailto://}{}smx;
         ${$txt_ref} =~ s{($MAIL_RE)}{<a href='mailto:$1'>$1</a>}gsmx;
@@ -265,7 +284,7 @@ sub command {
 
             # Items that begin with '* ' are ugly. Is it there for pod2man?
             # Which is not the same as _only_ '*'
-            $expansion =~ s{\A\*\s+}{}mx;
+            $expansion =~ s{\A\*\s+}{}msx;
 
             if ( $parser->{INDEX_ITEM} ) {
                 _add_index( $parser, $expansion, $LEVELL );
@@ -273,6 +292,7 @@ sub command {
 
             # This is for the folks who use =item to list URLs
             if ( $expansion !~ m{<a\shref=}smx ) {
+
                 # The URI's not already encoded (L<...> is already processed)
                 _add_uri_href( \$expansion );
             }
@@ -294,7 +314,7 @@ sub command {
                     ->{qq{ON_\U$command\E}}( $parser->{POD_HTMLEASY},
                     $expansion );
             }
-            elsif ( $command !~ /^(?:pod|cut)$/imx ) {
+            elsif ( $command !~ /^(?:pod|cut)$/imsx ) {
                 $html = qq{<pre>=$command $expansion</pre>};
             }
             else { $html = EMPTY; }

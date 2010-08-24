@@ -1,4 +1,3 @@
-#
 #===============================================================================
 #
 #         FILE:  Run.pm
@@ -9,7 +8,7 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.0.2
+#      VERSION:  1.1.8
 #      CREATED:  12/20/07 13:29:02 PST
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #===============================================================================
@@ -26,7 +25,7 @@ use File::Slurp;
 use Readonly;
 use IPC::Run qw( start pump finish );
 use Test::More qw(no_plan);
-use version; our $VERSION = qv('1.0.2');
+use version; our $VERSION = qv('1.1.8');
 
 BEGIN {
     use_ok(q{Pod::HtmlEasy});

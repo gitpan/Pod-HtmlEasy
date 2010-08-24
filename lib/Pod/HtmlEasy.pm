@@ -4,7 +4,7 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
-## Updated:	    2009-05-16
+## Updated:	    2010-06-13
 ## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2010 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
@@ -26,10 +26,10 @@ use Readonly;
 use Regexp::Common qw{ whitespace };
 
 use version;
-our $VER = qv('1.1.7');    # Also appears in "=head1 VERSION" in the POD below
+our $VER = qv('1.1.8');    # Also appears in "=head1 VERSION" in the POD below
 
 # Why this? CPAN (a/o 1/1/2008) does not grok qv.
-our $VERSION = '1.1.7';
+our $VERSION = '1.1.8';
 
 ########
 # VARS #
@@ -63,15 +63,15 @@ Readonly::Hash my %OPTS => (
 sub _organize_callbacks {
     my $this = shift;
 
-    $this->{ON_B} = \&evt_on_B;
-    $this->{ON_C} = \&evt_on_C;
-    $this->{ON_E} = \&evt_on_E;
-    $this->{ON_F} = \&evt_on_F;
-    $this->{ON_I} = \&evt_on_I;
-    $this->{ON_L} = \&evt_on_L;
-    $this->{ON_S} = \&evt_on_S;
-    $this->{ON_X} = \&evt_on_X;    # [20078]
-    $this->{ON_Z} = \&evt_on_Z;
+    $this->{ON_B} = \&evt_on_b;
+    $this->{ON_C} = \&evt_on_c;
+    $this->{ON_E} = \&evt_on_e;
+    $this->{ON_F} = \&evt_on_f;
+    $this->{ON_I} = \&evt_on_i;
+    $this->{ON_L} = \&evt_on_l;
+    $this->{ON_S} = \&evt_on_s;
+    $this->{ON_X} = \&evt_on_x;    # [20078]
+    $this->{ON_Z} = \&evt_on_z;
 
     $this->{ON_HEAD1} = \&evt_on_head1;
     $this->{ON_HEAD2} = \&evt_on_head2;
@@ -279,7 +279,7 @@ sub pod2html {    ## no critic (ProhibitExcessComplexity)
     @html = map { $_ . NL } @html;
 
     if ( defined $save ) {
-        open my $out, q{>}, $save or carp qq{Unable to open $save - $!};
+        open my $out, q{>}, $save or carp qq{Unable to open $save - $ERRNO};
         print {$out} @html or carp qq{Could not write to $out};
         close $out or carp qq{Could not close $out};
     }
@@ -340,7 +340,7 @@ sub _do_index {
             }
 
             # Strip http to conform to =item
-            $txt =~ s{\Ahttps?://}{}gmx;
+            $txt =~ s{\Ahttps?://}{}gmsx;
             $tag = toc_tag($txt);
         }
 
@@ -464,7 +464,7 @@ sub evt_on_end {
 }
 
 # See perlpodsec for details on interpreting the items
-sub evt_on_L {    ## no critic (ProhibitManyArgs)
+sub evt_on_l {    ## no critic (ProhibitManyArgs)
     my ( $this, $text, $inferred, $name, $section, $type ) = @_;
 
     if ( $type eq q{pod} ) {
@@ -473,19 +473,17 @@ sub evt_on_L {    ## no critic (ProhibitManyArgs)
         $inferred =~ s{\A(.)}{$1$NUL}smx;
         my $toc_tag = toc_tag($section);
 
-        # Possible bug in Pod::Parser
-        #if ( defined $name && not length $name ) { $name = undef; }
-        return
-            defined $name
-            ? qq{<i><a href='h${NUL}ttp://search.cpan.org/perldoc?}
-            . qq{$name$section'>$inferred</a></i>}
-            : qq{<i><a href='$toc_tag'>$inferred</a></i>}
-            ;    # Internal reference
+        if ( defined $name ) {
+            return qq{<i><a href='h${NUL}ttp://search.cpan.org/perldoc?}
+                . qq{$name$section'>$inferred</a></i>};
+        }
+        return qq{<i><a href='$toc_tag'>$inferred</a></i>};
     }
+
     if ( $type eq q{man} ) {
 
  # $name probably looks like "foo(1)", and the () are interpreted as metachars
-        if ( $inferred !~ m{\Q$name\E}mx ) { $inferred .= qq{ in $name}; }
+        if ( $inferred !~ m{\Q$name\E}msx ) { $inferred .= qq{ in $name}; }
         return qq{<i>$inferred</i>};
     }
     if ( $type eq q{url} ) {
@@ -498,22 +496,22 @@ sub evt_on_L {    ## no critic (ProhibitManyArgs)
     return $inferred;
 }
 
-sub evt_on_B {
+sub evt_on_b {
     my ( $this, $txt ) = @_;
     return qq{<b>$txt</b>};
 }
 
-sub evt_on_I {
+sub evt_on_i {
     my ( $this, $txt ) = @_;
     return qq{<i>$txt</i>};
 }
 
-sub evt_on_C {
+sub evt_on_c {
     my ( $this, $txt ) = @_;
     return qq{<code>$txt</code>};
 }
 
-sub evt_on_E {
+sub evt_on_e {
     my ( $this, $txt ) = @_;
 
     $txt =~ s{^&}{}smx;
@@ -522,12 +520,12 @@ sub evt_on_E {
     return qq{&$txt;};
 }
 
-sub evt_on_F {
+sub evt_on_f {
     my ( $this, $txt ) = @_;
     return qq{<b><i>$txt</i></b>};
 }
 
-sub evt_on_S {
+sub evt_on_s {
     my ( $this, $txt ) = @_;
 
     # Eliminate newlines; dos files use \r\n
@@ -536,9 +534,9 @@ sub evt_on_S {
     return $txt;
 }
 
-sub evt_on_X { return EMPTY; }    # [20078]
+sub evt_on_x { return EMPTY; }    # [20078]
 
-sub evt_on_Z { return EMPTY; }
+sub evt_on_z { return EMPTY; }
 
 sub evt_on_verbatim {
     my ( $this, $txt ) = @_;
@@ -580,7 +578,7 @@ sub evt_on_over {
 sub evt_on_item {
     my ( $this, $txt ) = @_;
 
-    if ( ( length($txt) == 1 ) && ( $txt !~ m{\d}mx ) ) {
+    if ( ( length($txt) == 1 ) && ( $txt !~ m{\d}msx ) ) {
 
         # Use the content for the tag
         $this->{IN_ITEM} = 1;
@@ -679,13 +677,51 @@ __END__
 
 =pod
 
+=begin stopwords
+PODs
+CPAN
+html
+FILEHANDLE
+STDIN
+STDOUT
+pre
+css
+HREF
+intex
+DOCTYPE
+outptut
+parserwarn
+backend
+Regretably
+uArr
+CSS
+undef
+avalable
+nonblank
+automagically
+encodings
+URIs
+http
+https
+mailto
+Firefox
+mis
+HtmlEasy
+Graciliano
+Tubert
+Brohman
+Nobuaki
+Whitcomb
+Wieselquist
+=end stopwords
+
 =head1 NAME
 
 Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 1.1.7.
+This documentation refers to Pod::HtmlEasy version 1.1.8.
 
 =head1 DESCRIPTION
 
@@ -730,7 +766,7 @@ an odd number of values in an hash assignment.
 
 The default is to use the POD_FILE parameter, replacing the extension with "html"
 in the current directory. If you want to name the output file differently, use the I<-output>
-option. B<Note that this is an incompatible change from previous versions. Sorry 'bout that.>
+option. B<Note that this is an incompatible change from pre-1.0 versions. Sorry 'bout that.>
 
 =item %OPTIONS I<(optional)>
 
@@ -1121,6 +1157,9 @@ Thanks to ITO Nobuaki for the patches for [31784].
 
 Thanks to David Whitcomb for pointing out an error in HTML generation.
 
+Thanks to William Wieselquist for [58274], in which he pointed out an error in the
+parsing of dotted user names in mail address syntax.
+
 =head1 MAINTENANCE
  
 Updates for version 0.0803 and subsequent by Geoffrey Leach <gleach@cpan.org>
@@ -1128,7 +1167,7 @@ Updates for version 0.0803 and subsequent by Geoffrey Leach <gleach@cpan.org>
 =head1 LICENSE AND COPYRIGHT
 
  Copyright 2004-2006 by M. P. Graciliano
- Copyright 2007-2008 by Geoffrey Leach
+ Copyright 2007-2010 by Geoffrey Leach
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

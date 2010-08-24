@@ -1,4 +1,5 @@
 Changes
+Build.PL
 lib/Pod/HtmlEasy.pm
 lib/Pod/HtmlEasy/Data.pm
 lib/Pod/HtmlEasy/Parser.pm

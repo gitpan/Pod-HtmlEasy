@@ -10,7 +10,7 @@
 #        NOTES:  --- The intent of this module is to localize some of the HTML
 #                    generation so as to make it accessible to the test suite.
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:   1.0.3
+#      VERSION:   1.1.8
 #      CREATED:  10/17/07 15:14:33 PDT
 #      UPDATED:  Wed Jan 20 05:28:34 PST 2010
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -23,7 +23,7 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv('1.0.3');
+use version; our $VERSION = qv('1.1.8');
 
 use Exporter::Easy (
     OK => [
@@ -52,8 +52,8 @@ sub gen {
     my $g
         = q{<meta name="generator" content="Pod::HtmlEasy/VER Pod::Parser/PVER }
         . qq{Perl/$] [$^O]">};
-    $g =~ s{VER}{$ver}mx;
-    $g =~ s{PVER}{$pver}mx;
+    $g =~ s{VER}{$ver}msx;
+    $g =~ s{PVER}{$pver}msx;
     return $g;
 }
 
@@ -76,7 +76,6 @@ sub toc {
     return @index
         ? ( @toc[ 0 .. 1 ], @index, @toc[ 2 .. 3 ] )
         : @toc;
-    ## no critic
 }
 
 # Create the toc tag.
@@ -87,9 +86,9 @@ sub toc {
 
 sub toc_tag {
     my $txt = shift;
-    $txt =~ s{<.+?>}{}mxg;
-    $txt =~ s{\s+}{ }mxg;
-    $txt =~ s{https?://}{}mxg;
+    $txt =~ s{<.+?>}{}msxg;
+    $txt =~ s{\s+}{ }msxg;
+    $txt =~ s{https?://}{}msxg;
     return $txt;
 }
 
