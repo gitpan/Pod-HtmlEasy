@@ -11,7 +11,7 @@
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach (), <geoff@hughes.net>
 #      COMPANY:
-#      VERSION:  1.1.8
+#      VERSION:  1.1.9
 #      CREATED:  02/13/08 13:22:58 PST
 #     REVISION:  ---
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -31,7 +31,7 @@ BEGIN {
     use_ok(q{Pod::HtmlEasy::Data});
 }
 
-use version; our $VERSION = qv('1.1.8');
+use version; our $VERSION = qv('1.1.9');
 
 is( Pod::HtmlEasy::Data::EMPTY, Data::EMPTY, q{EMPTY} );
 is( Pod::HtmlEasy::Data::FALSE, Data::FALSE, q{FALSE} );

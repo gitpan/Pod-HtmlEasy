@@ -26,10 +26,10 @@ use Readonly;
 use Regexp::Common qw{ whitespace };
 
 use version;
-our $VER = qv('1.1.8');    # Also appears in "=head1 VERSION" in the POD below
+our $VER = qv('1.1.9');    # Also appears in "=head1 VERSION" in the POD below
 
 # Why this? CPAN (a/o 1/1/2008) does not grok qv.
-our $VERSION = '1.1.8';
+our $VERSION = '1.1.9';
 
 ########
 # VARS #
@@ -678,6 +678,7 @@ __END__
 =pod
 
 =begin stopwords
+
 PODs
 CPAN
 html
@@ -713,6 +714,7 @@ Brohman
 Nobuaki
 Whitcomb
 Wieselquist
+
 =end stopwords
 
 =head1 NAME
@@ -721,7 +723,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 1.1.8.
+This documentation refers to Pod::HtmlEasy version 1.1.9.
 
 =head1 DESCRIPTION
 

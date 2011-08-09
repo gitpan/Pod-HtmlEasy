@@ -10,7 +10,7 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.1.8
+#      VERSION:  1.1.9
 #      CREATED:  10/28/07 09:56:16 PDT
 #     REVISION:  Wed Jan 20 05:23:16 PST 2010
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -24,7 +24,7 @@ use warnings;
 use lib qw(./t);
 use Run qw( run html_file );
 use Pod::HtmlEasy::Data qw(NL);
-use version; our $VERSION = qv('1.1.8');
+use version; our $VERSION = qv('1.1.9');
 
 #--------------------------- test 4
 

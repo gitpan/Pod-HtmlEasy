@@ -1,5 +1,11 @@
 Revision history for Perl extension Pod::HtmlEasy.
 
+1.0109   2011-08-09
+           RT ticket 70172. Missing dependency for Getopt::Auto
+           RT ticket 70173. Missing dependency for HTML::EasyTags,
+            List::MoreUtils, Uniq. Also fix usage of =stopwords, 
+            which was confusing pod2man.
+
 1.0108   2010-06-13
            Ooooh! A bugreport. Someone's actually using this stuff!
            RT ticket 58274. User names with embedded '.' are not

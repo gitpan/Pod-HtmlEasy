@@ -10,7 +10,7 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.1.8
+#      VERSION:  1.1.9
 #      CREATED:  10/25/07 11:30:15 PDT
 #     REVISION:  ---
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -22,7 +22,7 @@ use strict;
 use warnings;
 
 use Test::More tests => 9;
-use version; our $VERSION = qv('1.1.8');
+use version; our $VERSION = qv('1.1.9');
 
 BEGIN {
     use_ok(q{Pod::HtmlEasy});

@@ -23,7 +23,7 @@ use HTML::EasyTags;
 use IO::File;
 use IO::Handle;
 use List::MoreUtils qw{any};
-use Pod::HtmlEasy 1.1.8;
+use Pod::HtmlEasy 1.1.9;
 use Pod::Usage;
 use Readonly;
 use Regexp::Common qw{ whitespace };

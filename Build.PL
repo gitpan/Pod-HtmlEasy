@@ -14,6 +14,9 @@ my $builder = Module::Build->new (
                         'English'        => 0,
                         'Exporter::Easy' => '0.16',
                         'File::Slurp'    => '9999.13',
+                        'Getopt::Auto'   => '1.9.6',
+                        'HTML::EasyTags' => 0,
+                        'List::MoreUtils' => 0,
                         'Pod::Escapes'   => '1.04',
                         'Pod::Parser'    => '1.37',
                         'Pod::ParseLink' => '1.06',
@@ -22,6 +25,7 @@ my $builder = Module::Build->new (
                         'Pod::ParseLink' => '1.06',
                         'Regexp::Common::Email::Address' => '1.01',
                         'Switch'         => '2.13',
+                        'Uniq'           => 0,
                         'version'        => '0.82',
 },
     build_requires      => {
