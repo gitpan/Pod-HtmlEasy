@@ -5,7 +5,7 @@
 ## Modified by: Geoffrey Leach
 ## Created:     11/01/2004
 ## Updated:	    2010-06-13
-## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2010 Geoffrey Leach
+## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2013 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
 #############################################################################
@@ -22,17 +22,24 @@ use Pod::HtmlEasy::Data qw(EMPTY NUL);
 use Carp;
 use English qw{ -no_match_vars };
 use Regexp::Common qw{ whitespace number URI };
-=if 0
-use Regexp::Common qw{ Email::Address };
-=cut
 use Regexp::Common::URI::RFC2396 qw { $escaped };
 use Pod::Escapes qw{ e2char };
-use Switch qw{ Perl6 };
+
+# Provided for RT 82400. Use native switch if available.
+BEGIN {
+        if ($PERL_VERSION >= 5.012) {
+                require feature;
+                "feature"->import(qw(switch));
+        } else {
+                require Switch;
+                "Switch"->import(qw(Perl6));
+        }
+}
 
 use strict;
 use warnings;
 
-use version; our $VERSION = qv('1.1.9');
+use version; our $VERSION = qv('1.1.10');
 
 ########
 # VARS #
@@ -198,18 +205,6 @@ sub _add_uri_href {
         return;
     }
 
-=if 0
-    # RT 58274
-    my @addrs = ${$txt_ref} =~ m{($RE{Email}{Address})}smxg;
-    if (@addrs) {
-        ${$txt_ref} =~ s{mailto://}{}gsmx;
-        foreach my $addr (@addrs) {
-            $addr       =~ s{^/*}{}smx;
-            $addr       =~ s{\s+}{}gsmx;
-            ${$txt_ref} =~ s{$addr}{<a href='mailto:$addr'>$addr</a>}gsmx;
-        }
-    }
-=cut
     if ( ${$txt_ref} =~ m{$MAIL_RE}smx ) {
         ${$txt_ref} =~ s{mailto://}{}smx;
         ${$txt_ref} =~ s{($MAIL_RE)}{<a href='mailto:$1'>$1</a>}gsmx;
@@ -248,39 +243,39 @@ sub command {
 
     my $html;
     given ($command) {
-        when q{head1} {
+        when (q{head1}) {
             _add_index( $parser, $expansion, $LEVEL1 );
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_HEAD1}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{head2} {
+        when (q{head2}) {
             _add_index( $parser, $expansion, $LEVEL2 );
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_HEAD2}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{head3} {
+        when (q{head3}) {
             _add_index( $parser, $expansion, $LEVEL3 );
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_HEAD3}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{head4} {
+        when (q{head4}) {
             _add_index( $parser, $expansion, $LEVEL4 );
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_HEAD4}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{begin} {
+        when (q{begin}) {
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_BEGIN}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{end} {
+        when (q{end}) {
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_END}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{over} {
+        when (q{over}) {
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_OVER}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{item} {
+        when (q{item}) {
 
             # Items that begin with '* ' are ugly. Is it there for pod2man?
             # Which is not the same as _only_ '*'
@@ -299,11 +294,11 @@ sub command {
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_ITEM}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{back} {
+        when (q{back}) {
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_BACK}( $parser->{POD_HTMLEASY}, $expansion );
         }
-        when q{for} {
+        when (q{for}) {
             $html = $parser->{POD_HTMLEASY}
                 ->{ON_FOR}( $parser->{POD_HTMLEASY}, $expansion );
         }
@@ -434,27 +429,27 @@ sub interior_sequence {
     }
 
     given ($seq_command) {
-        when q{B} {
+        when (q{B}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_B}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
-        when q{C} {
+        when (q{C}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_C}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
-        when q{E} {
+        when (q{E}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_E}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
-        when q{F} {
+        when (q{F}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_F}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
-        when q{I} {
+        when (q{I}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_I}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
-        when q{L} {
+        when (q{L}) {
 
             # L<> causes problems, but not with parselink.
             if ( $seq_argument eq EMPTY ) {
@@ -470,11 +465,11 @@ sub interior_sequence {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_L}( $parser->{POD_HTMLEASY}, @parsed );
         }
-        when q{S} {
+        when (q{S}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_S}( $parser->{POD_HTMLEASY}, $seq_argument );
         }
-        when q{Z} {
+        when (q{Z}) {
             $ret = $parser->{POD_HTMLEASY}
                 ->{ON_Z}( $parser->{POD_HTMLEASY}, $seq_argument );
         }

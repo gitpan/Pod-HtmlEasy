@@ -17,3 +17,5 @@ t/options.t
 t/utility.t
 t/Data.pm
 t/Run.pm
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

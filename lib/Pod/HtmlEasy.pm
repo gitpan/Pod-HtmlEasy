@@ -4,14 +4,14 @@
 ## Author:      Graciliano M. P.
 ## Modified by: Geoffrey Leach
 ## Created:     2004-01-11
-## Updated:	    2010-06-13
-## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2010 Geoffrey Leach
+## Updated:	    2011-08-13
+## Copyright:   (c) 2004 Graciliano M. P. (c) 2007 - 2013 Geoffrey Leach
 ## Licence:     This program is free software; you can redistribute it and/or
 ##              modify it under the same terms as Perl itself
 #############################################################################
 
 package Pod::HtmlEasy;
-use 5.006002;
+use 5.006003;
 
 use strict;
 use warnings;
@@ -26,10 +26,10 @@ use Readonly;
 use Regexp::Common qw{ whitespace };
 
 use version;
-our $VER = qv('1.1.9');    # Also appears in "=head1 VERSION" in the POD below
+our $VER = qv('1.1.10');    # Also appears in "=head1 VERSION" in the POD below
 
 # Why this? CPAN (a/o 1/1/2008) does not grok qv.
-our $VERSION = '1.1.9';
+our $VERSION = '1.1.10';
 
 ########
 # VARS #
@@ -723,7 +723,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 1.1.9.
+This documentation refers to Pod::HtmlEasy version 1.1.10.
 
 =head1 DESCRIPTION
 
@@ -1151,6 +1151,8 @@ Graciliano M. P. <gm@virtuasites.com.br>
 
 I will appreciate any type of feedback (include your opinions and/or suggestions). ;-P
 
+=head1 THANKS
+
 Thanks to Ivan Tubert-Brohman <itub@cpan.org> that suggested to add the basic_entities
 and common_entities options and for tests. [These options have been removed. As "modern"
 browsers don't need all that encoding. See L<CHARACTER SET> above.]. 
@@ -1162,6 +1164,8 @@ Thanks to David Whitcomb for pointing out an error in HTML generation.
 Thanks to William Wieselquist for [58274], in which he pointed out an error in the
 parsing of dotted user names in mail address syntax.
 
+Thanks to Zefram for providing patches for using native switch if available. [82400]
+
 =head1 MAINTENANCE
  
 Updates for version 0.0803 and subsequent by Geoffrey Leach <gleach@cpan.org>
@@ -1169,7 +1173,7 @@ Updates for version 0.0803 and subsequent by Geoffrey Leach <gleach@cpan.org>
 =head1 LICENSE AND COPYRIGHT
 
  Copyright 2004-2006 by M. P. Graciliano
- Copyright 2007-2010 by Geoffrey Leach
+ Copyright 2007-2013 by Geoffrey Leach
 
 This program is free software; you can redistribute it and/or
 modify it under the same terms as Perl itself.

@@ -12,7 +12,7 @@
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
 #      VERSION:   1.1.9
 #      CREATED:  10/17/07 15:14:33 PDT
-#      UPDATED:  Wed Jan 20 05:28:34 PST 2010
+#      UPDATED:  Wed Jan 20 05:28:34 PST 2013
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #
 #===============================================================================
@@ -23,7 +23,7 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
-use version; our $VERSION = qv('1.1.9');
+use version; our $VERSION = qv('1.1.10');
 
 use Exporter::Easy (
     OK => [

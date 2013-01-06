@@ -3,6 +3,7 @@
 ###############
 
 use ExtUtils::MakeMaker;
+use English qw{ -no_match_vars };
 
 WriteMakefile(
     'NAME'          => 'Pod::HtmlEasy' ,
@@ -20,7 +21,11 @@ WriteMakefile(
                         'Regexp::Common' => 2.120,
                         'Pod::ParseLink' => 1.06,
                         'Regexp::Common::Email::Address' => 1.01,
-                        'Switch'         => 2.13,
+                         ($PERL_VERSION >= 5.012 ? (
+                                 'feature'        => 1.16,
+                         ) : (
+                                 'Switch'         => 2.13,
+                         )),
                         'Test::More'     => 0.94,
                         'version'        => 0.82,
                        } ,
