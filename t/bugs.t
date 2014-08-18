@@ -10,7 +10,7 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.1.9
+#      VERSION:  1.1.11
 #      CREATED:  12/19/07 13:45:55 PST
 #     REVISION:  Wed Jan 20 05:22:15 PST 2010
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -24,7 +24,6 @@ use warnings;
 use lib qw(./t);
 use Run qw( run );
 use Pod::HtmlEasy::Data qw( NL );
-use version; our $VERSION = qv('1.1.9');
 
 #--------------------------- test 4
 
@@ -286,9 +285,7 @@ run(q{L<>, http in =item},
         q{<li><a name='www.foo.bar.com'></a>}
             . q{<a href='http://www.foo.bar.com' target='_blank'>www.foo.bar.com</a></li>},
     ],
-    [
-
-        # Extra <ul> because we don't have an =head1
+    [ # Extra <ul> because we don't have an =head1
         q{<ul>},
         q{<li><a href='#www.xxx.bar.com'>www.xxx.bar.com</a></li>},
         q{<li><a href='#www.foo.bar.com'>www.foo.bar.com</a></li>},
@@ -301,13 +298,19 @@ run(q{L<>, http in =item},
 );
 
 #--------------------------- test 15
+# Repaired for RT 92035
 
-run(q{OK: Empty L<>: error message is normal},
+run(q{Empty L<>: no error message},
     [ q{This is very bad: L<> ... or is it?}, ],
     [   q{<!-- POD_ERROR: Empty L<> -->},
         q{<p>This is very bad:  ... or is it?</p>},
     ],
     undef,
+    {   no_css       => 1,
+        index_item   => 1,
+        no_generator => 1,
+        stdio        => 'Empty L<>',
+    },
 );
 
 #--------------------------- test 16
@@ -446,7 +449,6 @@ run (
           index_length => 21,
         },
     );
-
 
 __END__
 

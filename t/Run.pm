@@ -8,7 +8,7 @@
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.1.9
+#      VERSION:  1.1.11
 #      CREATED:  12/20/07 13:29:02 PST
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
 #===============================================================================
@@ -25,7 +25,6 @@ use File::Slurp;
 use Readonly;
 use IPC::Run qw( start pump finish );
 use Test::More qw(no_plan);
-use version; our $VERSION = qv('1.1.9');
 
 BEGIN {
     use_ok(q{Pod::HtmlEasy});
@@ -82,6 +81,10 @@ sub run {    ## no critic (ProhibitExcessComplexity)
     if ( exists $opts->{stdio} ) {
 
         # Generate code to pipe @pod to pod2html and retrieve outptut
+
+        # Simple expression for expected StDERR output RT 92035
+        my $error_tag = $opts->{stdio};
+
         # Avoid complaint option stdio not suported
         delete $opts->{stdio};
 
@@ -98,6 +101,8 @@ sub run {    ## no critic (ProhibitExcessComplexity)
         foreach my $k ( keys %{$opts} ) {
             $cmd .= $k . q{,} . $opts->{$k} . q{,};
         }
+        $cmd =~ s{title,([\w.]+)}{title,'$1'};
+        $cmd =~ s{,$}{};
         $cmd .= q{)};
 
         # Complete the command
@@ -110,7 +115,12 @@ sub run {    ## no critic (ProhibitExcessComplexity)
         $harness->finish;
         ## no critic (RequireExtendedFormatting RequireLineBoundaryMatching)
         @html = map {qq{$_\n}} split m{\n}, $out;
-        carp $err if $err;
+
+        if ( $err ) {
+            if ( $err !~ m{$error_tag} ) {
+                carp $err;
+            }
+        }
     }
     elsif ( exists $opts->{outfile} ) {
 
@@ -129,7 +139,7 @@ sub run {    ## no critic (ProhibitExcessComplexity)
             @expect = head();
             if ( not exists $opts->{no_generator} ) {
                 push @expect,
-                    gen( $Pod::HtmlEasy::VER, $Pod::Parser::VERSION );
+                    gen( $Pod::HtmlEasy::VERSION, $Pod::Parser::VERSION );
             }
             push @expect, title( $opts->{title} );
             if ( exists $opts->{css} ) {

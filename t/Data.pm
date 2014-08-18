@@ -14,7 +14,7 @@
 #                    file and Pod::HtmlEasy::Data.pm deliver the same data.
 #                    The two modules should, of course, have the same version
 #       AUTHOR:  Geoffrey Leach, <geoff@hughes.net>
-#      VERSION:  1.1.9
+#      VERSION:  1.1.11
 #      CREATED:  10/17/07 15:14:33 LPDT
 #     REVISION:  Wed Jan 20 05:23:16 PST 2010
 #    COPYRIGHT:  (c) 2008-2010 Geoffrey Leach
@@ -28,7 +28,6 @@ use strict;
 use warnings;
 use English qw{ -no_match_vars };
 
-use version; our $VERSION = qv('1.1.9'); # Should be in sync with HtmlEasy::Data
 use Exporter::Easy (
     OK => [
         qw( EMPTY NL body css gen head headend title toc top podon podoff toc_tag )

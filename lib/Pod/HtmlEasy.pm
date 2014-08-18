@@ -22,14 +22,12 @@ use Pod::HtmlEasy::Data
 use Carp;
 use English qw{ -no_match_vars };
 use File::Slurp;
+use Pod::Parser; # Just for its VERSION
 use Readonly;
 use Regexp::Common qw{ whitespace };
 
 use version;
-our $VER = qv('1.1.10');    # Also appears in "=head1 VERSION" in the POD below
-
-# Why this? CPAN (a/o 1/1/2008) does not grok qv.
-our $VERSION = '1.1.10';
+our $VERSION = version->declare("v1.1.11");    # Also appears in "=head1 VERSION" in the POD below
 
 ########
 # VARS #
@@ -177,7 +175,7 @@ sub pod2html {    ## no critic (ProhibitExcessComplexity)
         }
     );
 
- # Pod::Parser wiii complain about multiple blank lines in INDEX_ITEMthe input
+ # Pod::Parser wiii complain about multiple blank lines in INDEX_ITEM,
  # which is moderately annoying
     if ( exists $args{parserwarn} ) { $parser->parseopts( -warnings => 1 ); }
 
@@ -203,6 +201,7 @@ sub pod2html {    ## no critic (ProhibitExcessComplexity)
     $parser->{POD_HTMLEASY}->{HTML} = \@output;
 
     my $title = $args{title};
+
     if ( ref $pod eq q{GLOB} ) {    # $pod is an open file handle
         if ( not defined $title ) { $title = q{<DATA>}; }
     }
@@ -221,8 +220,9 @@ sub pod2html {    ## no critic (ProhibitExcessComplexity)
     if ( defined $do_content ) {    # [31784]
         push @html, head();
 
+        # We assume here that Pod::Parser is always at the same level as the main
         if ( defined $do_generator ) {
-            push @html, gen( $VER, $Pod::Parser::VERSION );
+            push @html, gen( $VERSION,  $Pod::Parser::VERSION );
         }
 
         push @html, title($title);
@@ -723,7 +723,7 @@ Pod::HtmlEasy - Generate personalized HTML from PODs.
 
 =head1 VERSION
 
-This documentation refers to Pod::HtmlEasy version 1.1.10.
+This documentation refers to Pod::HtmlEasy version 1.1.11.
 
 =head1 DESCRIPTION
 

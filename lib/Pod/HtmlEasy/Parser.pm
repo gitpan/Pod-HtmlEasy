@@ -25,6 +25,7 @@ use Regexp::Common qw{ whitespace number URI };
 use Regexp::Common::URI::RFC2396 qw { $escaped };
 use Pod::Escapes qw{ e2char };
 
+
 # Provided for RT 82400. Use native switch if available.
 BEGIN {
         if ($PERL_VERSION >= 5.012) {
@@ -38,8 +39,6 @@ BEGIN {
 
 use strict;
 use warnings;
-
-use version; our $VERSION = qv('1.1.10');
 
 ########
 # VARS #
@@ -242,6 +241,7 @@ sub command {
     _remove_nul_escapes( \$expansion );
 
     my $html;
+    no warnings; # 'experimental'
     given ($command) {
         when (q{head1}) {
             _add_index( $parser, $expansion, $LEVEL1 );
@@ -315,6 +315,7 @@ sub command {
             else { $html = EMPTY; }
         }
     };
+    use warnings;
 
     if ( $html ne EMPTY ) {
         push @{ $parser->{POD_HTMLEASY}->{HTML} }, $html;
@@ -428,6 +429,7 @@ sub interior_sequence {
         _encode_entities( \$seq_argument );
     }
 
+    no warnings; # 'experimental'
     given ($seq_command) {
         when (q{B}) {
             $ret = $parser->{POD_HTMLEASY}
@@ -486,6 +488,7 @@ sub interior_sequence {
             }
         }
     }
+    use warnings;
 
     # Escape HTML-significant characters
     _nul_escape( \$ret );

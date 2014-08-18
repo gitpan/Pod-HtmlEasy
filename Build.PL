@@ -16,7 +16,7 @@ my $builder = Module::Build->new (
                         'English'         => 0,
                         'Exporter::Easy'  => '0.16',
                         'File::Slurp'     => '9999.13',
-                        'Getopt::Auto'    => '1.9.6',
+                        'Getopt::Auto'    => '1.009006',
                         'HTML::EasyTags'  => 0,
                         'List::MoreUtils' => 0,
                         'Pod::Escapes'    => '1.04',
@@ -34,10 +34,13 @@ my $builder = Module::Build->new (
                         'Uniq'            => 0,
                         'version'         => '0.82',
 },
+    configure_requires  => {
+                        'Module::Build'   => 0.4206,
+},
     build_requires      => {
                         'Test::More'      => '0.94',
                         'IPC::Run'        => '0.80',
-} ,
+},
     add_to_cleanup     => [ 'Pod-HtmlEasy-*' ],
     create_makefile_pl => 'traditional',
     script_files       => [ qw ( scripts/pod2indexed_html.pl )
