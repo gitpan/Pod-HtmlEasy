@@ -23,6 +23,7 @@ use 5.006002;
 use strict;
 use warnings;
 use English qw{ -no_match_vars };
+our $VERSION = version->declare("v1.1.11");    
 
 use Exporter::Easy (
     OK => [

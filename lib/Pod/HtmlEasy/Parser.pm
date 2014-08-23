@@ -25,6 +25,7 @@ use Regexp::Common qw{ whitespace number URI };
 use Regexp::Common::URI::RFC2396 qw { $escaped };
 use Pod::Escapes qw{ e2char };
 
+our $VERSION = version->declare("v1.1.11");    
 
 # Provided for RT 82400. Use native switch if available.
 BEGIN {

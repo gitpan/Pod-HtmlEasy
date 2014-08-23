@@ -53,10 +53,12 @@
          "version" : "v1.1.11"
       },
       "Pod::HtmlEasy::Data" : {
-         "file" : "lib/Pod/HtmlEasy/Data.pm"
+         "file" : "lib/Pod/HtmlEasy/Data.pm",
+         "version" : "v1.1.11"
       },
       "Pod::HtmlEasy::Parser" : {
-         "file" : "lib/Pod/HtmlEasy/Parser.pm"
+         "file" : "lib/Pod/HtmlEasy/Parser.pm",
+         "version" : "v1.1.11"
       }
    },
    "release_status" : "stable",
